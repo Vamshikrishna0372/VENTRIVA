@@ -1,0 +1,237 @@
+const FundraisingInvite = require('../models/FundraisingInvite');
+const FundraisingRound = require('../models/FundraisingRound');
+const InvestorCommitment = require('../models/InvestorCommitment');
+const User = require('../models/User');
+const Notification = require('../models/Notification');
+const fundraisingStatusService = require('../services/fundraisingStatusService');
+
+/**
+ * Invite an investor to a fundraising round (Founder endpoint)
+ */
+exports.createInvite = async (req, res, next) => {
+  try {
+    const { roundId } = req.params;
+    const { investorId, message, expiresAt } = req.body;
+
+    const round = await FundraisingRound.findById(roundId);
+    if (!round) {
+      return res.status(404).json({ success: false, message: 'Fundraising round not found' });
+    }
+
+    if (req.user.role !== 'admin' && round.founder.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Only the founder can issue invitations for this round' });
+    }
+
+    const investor = await User.findById(investorId);
+    if (!investor || investor.role !== 'investor') {
+      return res.status(404).json({ success: false, message: 'Investor not found or user is not an investor' });
+    }
+
+    // Check for existing invite
+    const existingInvite = await FundraisingInvite.findOne({
+      fundraisingRound: round._id,
+      investor: investor._id,
+    });
+
+    if (existingInvite && existingInvite.status === 'Pending') {
+      return res.status(400).json({ success: false, message: 'A pending invitation already exists for this investor' });
+    }
+
+    const invite = await FundraisingInvite.create({
+      fundraisingRound: round._id,
+      startup: round.startup,
+      investor: investor._id,
+      invitedBy: req.user._id,
+      status: 'Pending',
+      message: message || '',
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+    });
+
+    // Create commitment record in 'Invited' state
+    await InvestorCommitment.findOneAndUpdate(
+      { fundraisingRound: round._id, investor: investor._id },
+      {
+        fundraisingRound: round._id,
+        startup: round.startup,
+        founder: round.founder,
+        investor: investor._id,
+        commitmentStatus: 'Invited',
+        source: 'Founder Invitation',
+        createdBy: req.user._id,
+      },
+      { upsert: true, new: true }
+    );
+
+    // Audit log
+    await fundraisingStatusService.recordActivity({
+      fundraisingRound: round._id,
+      startup: round.startup,
+      investor: investor._id,
+      founder: round.founder,
+      actor: req.user._id,
+      action: 'INVESTOR_INVITED',
+      description: `Invited investor '${investor.name}' to fundraising round '${round.roundName}'`,
+    });
+
+    // Send notification
+    await Notification.create({
+      user: investor._id,
+      type: 'FundraisingInvite',
+      title: 'New Fundraising Invitation',
+      message: `You have been invited to review and participate in ${round.roundName}.`,
+      relatedEntityType: 'FundraisingInvite',
+      relatedEntityId: invite._id,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: invite,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: 'Invitation already exists for this investor and round' });
+    }
+    next(error);
+  }
+};
+
+/**
+ * List invites for a round
+ */
+exports.getInvitesForRound = async (req, res, next) => {
+  try {
+    const { roundId } = req.params;
+    const round = await FundraisingRound.findById(roundId).lean();
+
+    if (!round) {
+      return res.status(404).json({ success: false, message: 'Fundraising round not found' });
+    }
+
+    if (req.user.role === 'founder' && round.founder.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    let query = { fundraisingRound: roundId };
+    if (req.user.role === 'investor') {
+      query.investor = req.user._id;
+    }
+
+    const invites = await FundraisingInvite.find(query)
+      .populate('investor', 'name email avatar organization')
+      .populate('invitedBy', 'name email')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: invites.length,
+      data: invites,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * List invites for current investor
+ */
+exports.getMyInvites = async (req, res, next) => {
+  try {
+    const invites = await FundraisingInvite.find({ investor: req.user._id })
+      .populate('startup', 'startupName logo tagline sector valuation')
+      .populate('fundraisingRound', 'roundName roundType targetAmount preMoneyValuation status targetClosingDate')
+      .populate('invitedBy', 'name email organization')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: invites.length,
+      data: invites,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Accept invite (Investor endpoint)
+ */
+exports.acceptInvite = async (req, res, next) => {
+  try {
+    const invite = await FundraisingInvite.findById(req.params.id);
+    if (!invite) {
+      return res.status(404).json({ success: false, message: 'Invitation not found' });
+    }
+
+    if (req.user.role !== 'admin' && invite.investor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Only the invited investor can accept this invite' });
+    }
+
+    invite.status = 'Accepted';
+    invite.respondedAt = new Date();
+    await invite.save();
+
+    // Update commitment status to 'Interested'
+    await InvestorCommitment.findOneAndUpdate(
+      { fundraisingRound: invite.fundraisingRound, investor: invite.investor },
+      { commitmentStatus: 'Interested' }
+    );
+
+    res.status(200).json({ success: true, data: invite });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Decline invite (Investor endpoint)
+ */
+exports.declineInvite = async (req, res, next) => {
+  try {
+    const invite = await FundraisingInvite.findById(req.params.id);
+    if (!invite) {
+      return res.status(404).json({ success: false, message: 'Invitation not found' });
+    }
+
+    if (req.user.role !== 'admin' && invite.investor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Only the invited investor can decline this invite' });
+    }
+
+    invite.status = 'Declined';
+    invite.respondedAt = new Date();
+    await invite.save();
+
+    await InvestorCommitment.findOneAndUpdate(
+      { fundraisingRound: invite.fundraisingRound, investor: invite.investor },
+      { commitmentStatus: 'Declined' }
+    );
+
+    res.status(200).json({ success: true, data: invite });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Withdraw invite (Founder endpoint)
+ */
+exports.withdrawInvite = async (req, res, next) => {
+  try {
+    const invite = await FundraisingInvite.findById(req.params.id);
+    if (!invite) {
+      return res.status(404).json({ success: false, message: 'Invitation not found' });
+    }
+
+    if (req.user.role !== 'admin' && invite.invitedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Only the inviter can withdraw this invitation' });
+    }
+
+    invite.status = 'Withdrawn';
+    await invite.save();
+
+    res.status(200).json({ success: true, data: invite });
+  } catch (error) {
+    next(error);
+  }
+};
