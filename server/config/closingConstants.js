@@ -90,10 +90,12 @@ const PAYMENT_STATUSES = [
 
 const SHARE_CLASSES = [
   'Common Stock',
+  'Preferred Stock',
   'Preferred Stock - Seed',
   'Preferred Stock - Series A',
   'Preferred Stock - Series B',
   'SAFE Option',
+  'Options',
 ];
 
 module.exports = {

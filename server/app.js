@@ -70,11 +70,11 @@ app.use(
 );
 
 // CORS Configuration
-const allowedOrigins = [env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000'];
+const allowedOrigins = [env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000', 'https://ventriva.onrender.com'];
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.onrender.com') || origin.endsWith('.vercel.app')) {
         callback(null, true);
       } else if (env.NODE_ENV !== 'production') {
         callback(null, true); // Dev fallback
@@ -103,6 +103,21 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+// Production Root Endpoint (GET / & HEAD /)
+app.route('/')
+  .get((req, res) => {
+    res.status(200).json({
+      success: true,
+      application: 'Ventriva API',
+      version: appInfo.version || '1.0.0',
+      status: 'running',
+      environment: env.NODE_ENV,
+    });
+  })
+  .head((req, res) => {
+    res.status(200).end();
+  });
 
 // Liveness Probe Endpoint
 app.get('/api/health', (req, res) => {

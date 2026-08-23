@@ -18,10 +18,11 @@ const startServer = async () => {
     startJobRunner();
 
     // 3. Launch HTTP Server
-    server = app.listen(PORT, () => {
+    server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`===============================================`);
       logger.info(`🚀 ${appInfo.name} v${appInfo.version} API Server active on port ${PORT}`);
       logger.info(`📍 Environment: ${env.NODE_ENV}`);
+      logger.info(`📍 Root Endpoint: http://localhost:${PORT}/`);
       logger.info(`📍 Health Check: http://localhost:${PORT}/api/health`);
       logger.info(`📍 Readiness Probe: http://localhost:${PORT}/api/health/ready`);
       logger.info(`===============================================`);

@@ -37,15 +37,25 @@ exports.addBoardMember = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Only founders or admins can appoint board members' });
     }
 
-    const member = await BoardMember.create({
-      startup: startup._id,
-      user: userId,
-      role: role || 'Investor Director',
-      appointmentReason: appointmentReason || 'Investor Board Seat Agreement',
-      termEndDate: termEndDate ? new Date(termEndDate) : null,
-      status: 'Active',
-      votingPower: role === 'Observer' ? 0 : 1,
-    });
+    const targetUser = userId || req.user._id;
+    let member = await BoardMember.findOne({ startup: startup._id, user: targetUser });
+    if (member) {
+      member.role = role || member.role;
+      member.appointmentReason = appointmentReason || member.appointmentReason;
+      member.status = 'Active';
+      if (termEndDate) member.termEndDate = new Date(termEndDate);
+      await member.save();
+    } else {
+      member = await BoardMember.create({
+        startup: startup._id,
+        user: targetUser,
+        role: role || 'Investor Director',
+        appointmentReason: appointmentReason || 'Investor Board Seat Agreement',
+        termEndDate: termEndDate ? new Date(termEndDate) : null,
+        status: 'Active',
+        votingPower: role === 'Observer' ? 0 : 1,
+      });
+    }
 
     await governanceService.recordActivity({
       startupId: startup._id,

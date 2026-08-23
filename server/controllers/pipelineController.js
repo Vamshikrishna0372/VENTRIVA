@@ -112,6 +112,23 @@ const createOrUpdatePipeline = async (req, res, next) => {
       });
     }
 
+    if (['Due Diligence', 'Term Sheet', 'Closing', 'Partner Meeting', 'IC Review', 'Formal Deal'].includes(targetStage)) {
+      const Deal = require('../models/Deal');
+      let existingDeal = await Deal.findOne({ startup: startup._id, investor: req.user._id });
+      if (!existingDeal && startup.founder) {
+        await Deal.create({
+          startup: startup._id,
+          investor: req.user._id,
+          founder: startup.founder,
+          pipelineEntry: pipeline._id,
+          targetInvestment: expectedInvestment || startup.fundingAsk || 500000,
+          valuation: startup.valuation || 2500000,
+          dealType: 'Priced Equity Round',
+          status: 'Active',
+        });
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: 'Deal pipeline updated successfully',

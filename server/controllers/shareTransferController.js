@@ -28,8 +28,8 @@ exports.getTransfers = async (req, res, next) => {
 
 exports.proposeTransfer = async (req, res, next) => {
   try {
-    const { startupId, fromShareholderId, buyerName, buyerUser, shares, pricePerShare, reason } = req.body;
-    const seller = await Shareholder.findById(fromShareholderId);
+    const { startupId, fromShareholderId, fromShareholder, buyerName, buyerUser, shares, pricePerShare, reason } = req.body;
+    const seller = await Shareholder.findById(fromShareholderId || fromShareholder);
     if (!seller) return res.status(404).json({ success: false, message: 'Transferor shareholder not found' });
 
     const shareCount = Number(shares);

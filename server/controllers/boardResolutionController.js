@@ -39,7 +39,8 @@ exports.proposeResolution = async (req, res, next) => {
     const startup = await Startup.findById(startupId);
     if (!startup) return res.status(404).json({ success: false, message: 'Startup not found' });
 
-    const resolutionNum = `RES-${startup.companyName.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+    const sName = startup.companyName || startup.startupName || startup.name || 'VEN';
+    const resolutionNum = `RES-${sName.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-6)}`;
 
     const resolution = await BoardResolution.create({
       startup: startup._id,

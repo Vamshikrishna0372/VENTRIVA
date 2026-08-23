@@ -9,6 +9,12 @@ class VotingService {
    * Calculate server-side voting power for a user on a resolution
    */
   async calculateVotingPower({ resolution, userId }) {
+    const Startup = require('../models/Startup');
+    const startup = await Startup.findById(resolution.startup);
+    if (startup && startup.founder.toString() === userId.toString()) {
+      return 1;
+    }
+
     if (resolution.resolutionType === 'Board Vote' || resolution.meeting) {
       const boardMember = await BoardMember.findOne({ startup: resolution.startup, user: userId, status: 'Active' });
       if (!boardMember || boardMember.role === 'Observer') return 0;
@@ -17,7 +23,7 @@ class VotingService {
       // Shareholder vote: voting power based on persisted equity shareholder percentage
       const shareholder = await Shareholder.findOne({ startup: resolution.startup, user: userId, status: 'Active' });
       if (!shareholder || !shareholder.votingRights) return 0;
-      return shareholder.ownershipPercentage || 0;
+      return shareholder.ownershipPercentage || 1;
     }
   }
 

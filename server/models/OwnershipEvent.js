@@ -5,7 +5,7 @@ const ownershipEventSchema = new mongoose.Schema(
     investment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Investment',
-      required: [true, 'Investment ID is required'],
+      default: null,
       index: true,
     },
     startup: {
@@ -26,6 +26,7 @@ const ownershipEventSchema = new mongoose.Schema(
         'Follow-On Investment',
         'New Funding Round',
         'Secondary Transaction',
+        'Secondary Purchase',
         'Partial Exit',
         'Full Exit',
         'Ownership Adjustment',
@@ -40,7 +41,7 @@ const ownershipEventSchema = new mongoose.Schema(
     },
     newOwnership: {
       type: Number,
-      required: true,
+      default: 0,
       min: 0,
       max: 100,
     },
@@ -60,7 +61,7 @@ const ownershipEventSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
     },
   },
   {
