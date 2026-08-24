@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardCheck, Search, Filter, Compass, Edit3, Trash2, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
+import {
+  ClipboardCheck,
+  Search,
+  Filter,
+  Compass,
+  Edit3,
+  Trash2,
+  ArrowRight,
+  ShieldCheck,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Columns,
+  Target,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
 import { Card, CardHeader, CardBody } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -12,6 +28,8 @@ export const InvestorEvaluationsDashboard = () => {
   const [evaluations, setEvaluations] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,6 +42,7 @@ export const InvestorEvaluationsDashboard = () => {
 
   const fetchEvaluationsData = async () => {
     setIsLoading(true);
+    setIsError(false);
     try {
       const [evalRes, analyticsRes] = await Promise.all([
         getMyEvaluations({ status: statusFilter, decision: decisionFilter, search: searchTerm }),
@@ -38,6 +57,7 @@ export const InvestorEvaluationsDashboard = () => {
       }
     } catch (err) {
       console.error('Error fetching evaluations:', err);
+      setIsError(true);
     } finally {
       setIsLoading(false);
     }
@@ -45,11 +65,18 @@ export const InvestorEvaluationsDashboard = () => {
 
   const handleDelete = async (startupId) => {
     if (!window.confirm('Are you sure you want to delete your private evaluation for this startup?')) return;
+    setFeedback({ type: '', message: '' });
     try {
-      await deleteEvaluation(startupId);
-      fetchEvaluationsData();
+      const res = await deleteEvaluation(startupId);
+      if (res?.success) {
+        setFeedback({ type: 'success', message: 'Venture evaluation deleted successfully.' });
+        fetchEvaluationsData();
+      } else {
+        setFeedback({ type: 'error', message: res?.message || 'Failed to delete evaluation' });
+      }
     } catch (err) {
-      alert('Failed to delete evaluation');
+      console.error('Error deleting evaluation:', err);
+      setFeedback({ type: 'error', message: err.response?.data?.message || 'Error deleting evaluation' });
     }
   };
 
@@ -68,11 +95,16 @@ export const InvestorEvaluationsDashboard = () => {
             <p className="text-sm text-slate-400">Review, score, and track confidential investment evaluations across shortlisted ventures.</p>
           </div>
 
-          <Link to="/investor/discover">
-            <Button variant="primary" size="sm" icon={Compass}>
-              Discover & Evaluate
+          <div className="flex items-center gap-2">
+            <Button onClick={fetchEvaluationsData} icon={RefreshCw} variant="outline" size="sm">
+              Refresh
             </Button>
-          </Link>
+            <Link to="/investor/discover">
+              <Button variant="primary" size="sm" icon={Compass}>
+                Discover & Evaluate
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Filter & Search Controls */}
@@ -100,7 +132,42 @@ export const InvestorEvaluationsDashboard = () => {
             options={[{ value: 'all', label: 'All Investment Decisions' }, ...INVESTMENT_DECISIONS.map((d) => ({ value: d, label: d }))]}
           />
         </div>
+
+        {/* Connected Workflows Quick Bar */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800/80 text-xs font-mono">
+          <Link to="/investor/discover" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5 text-brand-400" /> Discovery Engine
+          </Link>
+          <Link to="/investor/recommendations" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" /> AI Recommendations
+          </Link>
+          <Link to="/investor/pipeline" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Columns className="w-3.5 h-3.5 text-emerald-400" /> Deal Pipeline
+          </Link>
+          <Link to="/investor/investment-decisions" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5 text-indigo-400" /> Investment Decisions
+          </Link>
+        </div>
       </div>
+
+      {feedback.message && (
+        <div className={`p-4 rounded-xl border text-xs flex items-center gap-2.5 ${
+          feedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+        }`}>
+          {feedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" /> : <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />}
+          <span>{feedback.message}</span>
+        </div>
+      )}
+
+      {isError && (
+        <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl flex items-center justify-between text-xs text-rose-300">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400" />
+            <span>Failed to load venture evaluations dataset. Please try again.</span>
+          </div>
+          <Button variant="outline" size="xs" onClick={fetchEvaluationsData}>Retry</Button>
+        </div>
+      )}
 
       {/* Analytics Summary Cards */}
       {analytics && (
@@ -139,7 +206,7 @@ export const InvestorEvaluationsDashboard = () => {
           <p className="text-xs text-slate-400 font-mono">Loading Venture Evaluations...</p>
         </div>
       ) : evaluations.length === 0 ? (
-        <Card className="text-center py-16 px-4 space-y-4">
+        <Card className="text-center py-16 px-4 space-y-4 border-slate-800 bg-slate-900">
           <ClipboardCheck className="w-12 h-12 text-slate-500 mx-auto" />
           <div className="max-w-md mx-auto space-y-1">
             <h3 className="text-lg font-bold text-slate-100">No Private Evaluations Found</h3>
@@ -164,8 +231,8 @@ export const InvestorEvaluationsDashboard = () => {
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="font-bold text-slate-100 text-base">{startup.startupName}</h3>
-                      <p className="text-xs text-slate-400 font-mono">{startup.sector} • {startup.stage}</p>
+                      <h3 className="font-bold text-slate-100 text-base">{startup?.startupName || startup?.companyName || 'Portfolio Startup'}</h3>
+                      <p className="text-xs text-slate-400 font-mono">{startup?.sector} • {startup?.stage}</p>
                     </div>
 
                     <div className="text-right">
@@ -195,14 +262,14 @@ export const InvestorEvaluationsDashboard = () => {
                 <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
                   <button
                     type="button"
-                    onClick={() => handleDelete(startup._id)}
+                    onClick={() => handleDelete(startup?._id)}
                     className="text-xs text-slate-500 hover:text-rose-400 p-1.5 transition-colors"
                     title="Delete Evaluation"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  <Link to={`/investor/startups/${startup._id}/evaluate`}>
+                  <Link to={`/investor/startups/${startup?._id}/evaluate`}>
                     <Button variant="outline" size="sm" icon={Edit3}>
                       Edit Evaluation
                     </Button>
@@ -218,3 +285,4 @@ export const InvestorEvaluationsDashboard = () => {
 };
 
 export default InvestorEvaluationsDashboard;
+

@@ -26,8 +26,11 @@ const proposeTermSheet = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Deal Room not found' });
     }
 
-    const isFounder = deal.founder.toString() === req.user._id.toString();
-    const isInvestor = deal.investor.toString() === req.user._id.toString();
+    const founderId = deal.founder?._id || deal.founder;
+    const investorId = deal.investor?._id || deal.investor;
+
+    const isFounder = founderId && founderId.toString() === req.user._id.toString();
+    const isInvestor = investorId && investorId.toString() === req.user._id.toString();
     const isAdmin = req.user.role === 'admin';
 
     if (!isFounder && !isInvestor && !isAdmin) {
@@ -52,9 +55,9 @@ const proposeTermSheet = async (req, res, next) => {
 
     const termSheet = await TermSheet.create({
       deal: dealId,
-      startup: deal.startup,
-      investor: deal.investor,
-      founder: deal.founder,
+      startup: deal.startup?._id || deal.startup,
+      investor: investorId,
+      founder: founderId,
       version: nextVersion,
       proposedBy: req.user._id,
       investmentAmount,
@@ -78,7 +81,7 @@ const proposeTermSheet = async (req, res, next) => {
     await ActivityLog.create({
       activityType: 'deal',
       deal: dealId,
-      startup: deal.startup,
+      startup: deal.startup?._id || deal.startup,
       actor: req.user._id,
       action: 'TERM_SHEET_PROPOSED',
       description: `Term Sheet v${nextVersion} proposed with $${investmentAmount.toLocaleString()} investment at $${preMoneyValuation.toLocaleString()} valuation`,
@@ -86,15 +89,16 @@ const proposeTermSheet = async (req, res, next) => {
     });
 
     // Notify Counterpart
-    const recipientId = isInvestor ? deal.founder : deal.investor;
-    await Notification.create({
-      recipient: recipientId,
-      sender: req.user._id,
-      type: 'DEAL_UPDATE',
-      title: `Term Sheet v${nextVersion} Proposed`,
-      message: `A new Term Sheet (v${nextVersion}) has been proposed for your review.`,
-      link: isInvestor ? `/founder/deals/${dealId}` : `/investor/deals/${dealId}`,
-    });
+    const recipientId = isInvestor ? founderId : (investorId || founderId);
+    if (recipientId) {
+      await Notification.create({
+        user: recipientId,
+        sender: req.user._id,
+        type: 'DEAL_UPDATE',
+        title: `Term Sheet v${nextVersion} Proposed`,
+        message: `A new Term Sheet (v${nextVersion}) has been proposed for your review.`,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -119,8 +123,11 @@ const getTermSheetsForDeal = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Deal Room not found' });
     }
 
-    const isFounder = deal.founder.toString() === req.user._id.toString();
-    const isInvestor = deal.investor.toString() === req.user._id.toString();
+    const founderId = deal.founder?._id || deal.founder;
+    const investorId = deal.investor?._id || deal.investor;
+
+    const isFounder = founderId && founderId.toString() === req.user._id.toString();
+    const isInvestor = investorId && investorId.toString() === req.user._id.toString();
     const isAdmin = req.user.role === 'admin';
 
     if (!isFounder && !isInvestor && !isAdmin) {
@@ -161,8 +168,8 @@ const acceptTermSheet = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Deal Room not found' });
     }
 
-    // Ensure recipient is accepting, not the proposer
-    if (termSheet.proposedBy.toString() === req.user._id.toString()) {
+    const proposedById = termSheet.proposedBy?._id || termSheet.proposedBy;
+    if (proposedById && proposedById.toString() === req.user._id.toString()) {
       return res.status(400).json({ success: false, message: 'You cannot accept your own Term Sheet proposal' });
     }
 
@@ -189,12 +196,11 @@ const acceptTermSheet = async (req, res, next) => {
 
     // Notify Proposer
     await Notification.create({
-      recipient: termSheet.proposedBy,
+      user: termSheet.proposedBy,
       sender: req.user._id,
       type: 'DEAL_UPDATE',
       title: `Term Sheet v${termSheet.version} Accepted! 🎉`,
       message: `Your Term Sheet proposal (v${termSheet.version}) has been accepted.`,
-      link: req.user.role === 'founder' ? `/investor/deals/${dealId}` : `/founder/deals/${dealId}`,
     });
 
     res.status(200).json({
@@ -246,12 +252,11 @@ const declineTermSheet = async (req, res, next) => {
 
     // Notify Proposer
     await Notification.create({
-      recipient: termSheet.proposedBy,
+      user: termSheet.proposedBy,
       sender: req.user._id,
       type: 'DEAL_UPDATE',
       title: `Term Sheet v${termSheet.version} Declined`,
       message: `Term Sheet v${termSheet.version} was declined. Reason: ${rejectionReason || 'Declined during negotiation'}.`,
-      link: req.user.role === 'founder' ? `/investor/deals/${dealId}` : `/founder/deals/${dealId}`,
     });
 
     res.status(200).json({
@@ -278,7 +283,8 @@ const withdrawTermSheet = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Term Sheet proposal not found' });
     }
 
-    if (termSheet.proposedBy.toString() !== req.user._id.toString()) {
+    const proposedById = termSheet.proposedBy?._id || termSheet.proposedBy;
+    if (!proposedById || proposedById.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: 'Only the proposer can withdraw this Term Sheet' });
     }
 

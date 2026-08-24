@@ -1,9 +1,7 @@
 import api from './api';
 
 export const uploadDocument = async (formData) => {
-  const response = await api.post('/documents', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const response = await api.post('/documents', formData);
   return response.data;
 };
 
@@ -20,9 +18,7 @@ export const downloadDocumentBlob = async (documentId) => {
 };
 
 export const uploadDocumentVersion = async (documentId, formData) => {
-  const response = await api.post(`/documents/${documentId}/version`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const response = await api.post(`/documents/${documentId}/version`, formData);
   return response.data;
 };
 

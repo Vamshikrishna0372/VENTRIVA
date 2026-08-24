@@ -32,6 +32,9 @@ const logAdminAction = async (adminId, action, targetType, targetId, description
  */
 const getAdminDashboardMetrics = async (req, res, next) => {
   try {
+    const activeFounders = await User.find({ role: 'founder', isActive: { $ne: false } }).select('_id').lean();
+    const activeFounderIds = activeFounders.map((u) => u._id);
+
     const [
       totalUsers,
       founderCount,
@@ -54,11 +57,11 @@ const getAdminDashboardMetrics = async (req, res, next) => {
       User.countDocuments({ role: 'investor' }),
       User.countDocuments({ isActive: true }),
       User.countDocuments({ isActive: false }),
-      Startup.countDocuments({ isDeleted: false }),
-      Startup.countDocuments({ isDeleted: false, isPublished: true }),
-      Startup.countDocuments({ isDeleted: false, isPublished: false }),
-      Startup.countDocuments({ isDeleted: false, isVerified: true }),
-      Startup.countDocuments({ isDeleted: false, isVerified: false, isPublished: true }),
+      Startup.countDocuments({ isDeleted: false, founder: { $in: activeFounderIds } }),
+      Startup.countDocuments({ isDeleted: false, isPublished: true, founder: { $in: activeFounderIds } }),
+      Startup.countDocuments({ isDeleted: false, isPublished: false, founder: { $in: activeFounderIds } }),
+      Startup.countDocuments({ isDeleted: false, isVerified: true, founder: { $in: activeFounderIds } }),
+      Startup.countDocuments({ isDeleted: false, isVerified: false, isPublished: true, founder: { $in: activeFounderIds } }),
       Evaluation.countDocuments(),
       PipelineEntry.countDocuments({ status: 'Active' }),
       PipelineEntry.aggregate([{ $match: { status: 'Active' } }, { $group: { _id: null, totalVal: { $sum: '$expectedInvestment' } } }]),
@@ -213,6 +216,13 @@ const updateUserStatus = async (req, res, next) => {
     user.isActive = Boolean(isActive);
     await user.save();
 
+    if (user.role === 'founder' && !user.isActive) {
+      await Startup.updateMany(
+        { founder: user._id },
+        { isPublished: false, profileVisibility: 'Private' }
+      );
+    }
+
     const action = user.isActive ? 'USER_ACTIVATED' : 'USER_SUSPENDED';
     await logAdminAction(
       req.user._id,
@@ -234,6 +244,59 @@ const updateUserStatus = async (req, res, next) => {
         role: user.role,
         isActive: user.isActive,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Permanently delete or deactivate user account with cascade cleanup
+ * @route   DELETE /api/admin/users/:id
+ * @access  Private (Admin)
+ */
+const deleteUserAccount = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid User ObjectId format' });
+    }
+
+    if (id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: 'Admins cannot delete their own admin account' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found' });
+    }
+
+    // Cascade startup deactivation for founder accounts
+    if (user.role === 'founder') {
+      await Startup.updateMany(
+        { founder: user._id },
+        { isPublished: false, isDeleted: true, profileVisibility: 'Private' }
+      );
+    }
+
+    // Soft delete / deactivate user account
+    user.isActive = false;
+    await user.save();
+
+    await logAdminAction(
+      req.user._id,
+      'USER_DELETED',
+      'User',
+      user._id,
+      `Permanently deleted/deactivated user account ${user.email}`,
+      { role: user.role },
+      req
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `User account ${user.email} deleted successfully`,
     });
   } catch (error) {
     next(error);
@@ -436,6 +499,10 @@ const updateStartupPublication = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { isPublished, profileVisibility, reason } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid Startup ObjectId format' });
+    }
 
     const startup = await Startup.findById(id);
     if (!startup || startup.isDeleted) {
@@ -679,6 +746,7 @@ module.exports = {
   getAdminUsers,
   getAdminUserById,
   updateUserStatus,
+  deleteUserAccount,
   updateUserVerification,
   getAdminStartups,
   getAdminStartupById,

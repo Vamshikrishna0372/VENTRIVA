@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+let rawApiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').trim().replace(/\/+$/, '');
+if (!rawApiUrl.endsWith('/api')) {
+  rawApiUrl = `${rawApiUrl}/api`;
+}
+const API_BASE_URL = rawApiUrl;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -33,9 +37,9 @@ api.interceptors.response.use(
     // Intercept 401 Unauthorized to auto-clear stale tokens for protected routes
     if (status === 401) {
       const url = error.config?.url || '';
-      const isLoginRequest = url.includes('/auth/login');
+      const isPublicAuthRequest = url.includes('/auth/login') || url.includes('/auth/google') || url.includes('/auth/register');
 
-      if (!isLoginRequest) {
+      if (!isPublicAuthRequest) {
         localStorage.removeItem('ventriva_token');
         localStorage.removeItem('token');
         localStorage.removeItem('ventriva_user');

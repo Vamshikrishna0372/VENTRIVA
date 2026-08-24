@@ -4,7 +4,7 @@ import { Card, CardHeader, CardBody } from '../common/Card';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
 
-export const DealMilestoneList = ({ milestones = [], onCreate, onToggle, onDelete }) => {
+export const DealMilestoneList = ({ milestones = [], onCreate, onToggle, onDelete, onOpenAddModal }) => {
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('Closing');
 
@@ -17,7 +17,17 @@ export const DealMilestoneList = ({ milestones = [], onCreate, onToggle, onDelet
 
   return (
     <Card>
-      <CardHeader title="Closing Milestones & Due Diligence Checklist" subtitle="Track transaction closing prerequisites" />
+      <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/60">
+        <div>
+          <h3 className="font-bold text-slate-100 text-sm">Closing Milestones & Due Diligence Checklist</h3>
+          <p className="text-xs text-slate-400">Track transaction closing prerequisites</p>
+        </div>
+        {onOpenAddModal && (
+          <Button variant="primary" size="sm" icon={Plus} onClick={onOpenAddModal}>
+            Add Task
+          </Button>
+        )}
+      </div>
       <CardBody className="space-y-4">
         {/* Milestone Add Form */}
         <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2">
@@ -73,7 +83,7 @@ export const DealMilestoneList = ({ milestones = [], onCreate, onToggle, onDelet
                     </span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Badge variant="slate" size="xs">
-                        {m.category}
+                        {m.category || 'Closing'}
                       </Badge>
                       {m.completedAt && (
                         <span className="text-[10px] text-slate-500 font-mono">

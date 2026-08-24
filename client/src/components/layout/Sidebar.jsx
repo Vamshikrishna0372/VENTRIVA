@@ -149,7 +149,11 @@ export const Sidebar = ({ role = 'investor' }) => {
           <nav className="space-y-1">
             {items.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive =
+                location.pathname === item.path ||
+                (item.path !== '/' &&
+                  !item.path.endsWith('/dashboard') &&
+                  location.pathname.startsWith(item.path + '/'));
               return (
                 <Link
                   key={item.path}

@@ -60,7 +60,36 @@ const getSavedScenarios = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Delete a saved simulation scenario
+ * @route   DELETE /api/portfolio-scenarios/:id
+ * @access  Private (Investor only)
+ */
+const deleteScenario = async (req, res, next) => {
+  try {
+    const scenario = await PortfolioScenario.findById(req.params.id);
+
+    if (!scenario) {
+      return res.status(404).json({ success: false, message: 'Scenario not found' });
+    }
+
+    if (scenario.investor.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this scenario' });
+    }
+
+    await scenario.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Simulation scenario deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   calculateScenario,
   getSavedScenarios,
+  deleteScenario,
 };

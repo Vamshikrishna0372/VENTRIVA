@@ -247,6 +247,12 @@ export const InvestorStartupDetail = () => {
               {isShortlisted ? 'Shortlisted' : 'Save to Shortlist'}
             </Button>
 
+            <Link to="/investor/investment-decisions">
+              <Button variant="brand" size="sm" icon={FileText}>
+                Record Private Decision
+              </Button>
+            </Link>
+
             <Link to={`/investor/due-diligence/${startup._id}`}>
               <Button variant="outline" size="sm" icon={CheckSquare}>
                 Due Diligence

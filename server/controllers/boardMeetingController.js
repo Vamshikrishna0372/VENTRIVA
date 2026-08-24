@@ -12,6 +12,12 @@ exports.getMeetings = async (req, res, next) => {
     if (req.user.role === 'founder') {
       const startup = await Startup.findOne({ founder: req.user._id });
       if (startup) filter.startup = startup._id;
+    } else if (req.user.role === 'investor') {
+      const Investment = require('../models/Investment');
+      const investments = await Investment.find({ investor: req.user._id }).distinct('startup');
+      if (investments.length > 0) {
+        filter.startup = { $in: investments };
+      }
     }
 
     const meetings = await BoardMeeting.find(filter)

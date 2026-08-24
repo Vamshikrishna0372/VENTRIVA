@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Filter, Loader2, Compass } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  Sparkles,
+  Filter,
+  Loader2,
+  Compass,
+  RefreshCw,
+  Search,
+  Bookmark,
+  Target,
+  BarChart2,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Select } from '../../components/common/Select';
@@ -12,6 +25,8 @@ import { addToShortlist } from '../../services/shortlistService';
 export const InvestorRecommendations = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   // Filters
   const [sectorFilter, setSectorFilter] = useState('all');
@@ -24,6 +39,7 @@ export const InvestorRecommendations = () => {
 
   const fetchRecommendations = async () => {
     setIsLoading(true);
+    setIsError(false);
     try {
       const res = await getInvestorRecommendations({
         sector: sectorFilter,
@@ -36,17 +52,20 @@ export const InvestorRecommendations = () => {
       }
     } catch (err) {
       console.error('Error fetching recommendations:', err);
+      setIsError(true);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleShortlist = async (startupId) => {
+    setFeedback({ type: '', message: '' });
     try {
       await addToShortlist(startupId);
-      alert('Startup saved to shortlist!');
+      setFeedback({ type: 'success', message: 'Startup saved to your shortlist!' });
     } catch (err) {
-      alert('Failed to shortlist startup');
+      console.error('Error shortlisting startup:', err);
+      setFeedback({ type: 'error', message: err.response?.data?.message || 'Failed to shortlist startup' });
     }
   };
 
@@ -58,7 +77,7 @@ export const InvestorRecommendations = () => {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h1 className="text-2xl font-bold text-slate-100">Personalized Startup Recommendations</h1>
-              <Badge variant="brand">DISCOVERY ENGINE</Badge>
+              <Badge variant="brand">MATCH ENGINE</Badge>
             </div>
             <p className="text-sm text-slate-400">
               Startups matched against your stated sector, stage, and investment mandate preferences.
@@ -66,7 +85,12 @@ export const InvestorRecommendations = () => {
             </p>
           </div>
 
-          <Badge variant="emerald">{recommendations.length} Matched Startups</Badge>
+          <div className="flex items-center gap-2">
+            <Button onClick={fetchRecommendations} icon={RefreshCw} variant="outline" size="sm">
+              Refresh Matches
+            </Button>
+            <Badge variant="emerald">{recommendations.length} Matched Startups</Badge>
+          </div>
         </div>
 
         {/* Filters */}
@@ -107,7 +131,42 @@ export const InvestorRecommendations = () => {
             ]}
           />
         </div>
+
+        {/* Connected Workflows Quick Bar */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800/80 text-xs font-mono">
+          <Link to="/investor/discover" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5 text-brand-400" /> Discovery Engine
+          </Link>
+          <Link to="/investor/strategy" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5 text-indigo-400" /> Investment Thesis & Mandate
+          </Link>
+          <Link to="/investor/shortlist" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Bookmark className="w-3.5 h-3.5 text-cyan-400" /> Saved Shortlist
+          </Link>
+          <Link to="/investor/analytics" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <BarChart2 className="w-3.5 h-3.5 text-purple-400" /> Deal Analytics
+          </Link>
+        </div>
       </div>
+
+      {feedback.message && (
+        <div className={`p-4 rounded-xl border text-xs flex items-center gap-2.5 ${
+          feedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+        }`}>
+          {feedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" /> : <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />}
+          <span>{feedback.message}</span>
+        </div>
+      )}
+
+      {isError && (
+        <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl flex items-center justify-between text-xs text-rose-300">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400" />
+            <span>Failed to calculate recommendations. Please try again.</span>
+          </div>
+          <Button variant="outline" size="xs" onClick={fetchRecommendations}>Retry</Button>
+        </div>
+      )}
 
       {/* Recommendations Grid */}
       {isLoading ? (
@@ -116,7 +175,7 @@ export const InvestorRecommendations = () => {
           <p className="text-xs text-slate-400 font-mono">Calculating Platform Match Scores...</p>
         </div>
       ) : recommendations.length === 0 ? (
-        <Card className="text-center py-16 px-4 space-y-4">
+        <Card className="text-center py-16 px-4 space-y-4 border-slate-800 bg-slate-900">
           <Sparkles className="w-12 h-12 text-slate-500 mx-auto" />
           <div className="max-w-md mx-auto space-y-1">
             <h3 className="text-lg font-bold text-slate-100">No Startup Recommendations Matched</h3>
@@ -139,3 +198,4 @@ export const InvestorRecommendations = () => {
 };
 
 export default InvestorRecommendations;
+

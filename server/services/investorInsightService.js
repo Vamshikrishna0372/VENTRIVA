@@ -13,8 +13,11 @@ const investorInsightService = {
     const insights = [];
     const now = new Date();
 
-    // Rule 1: High-conviction opportunity (Evaluation score >= 8)
-    const highEvaluations = await Evaluation.find({ investor: investorId, overallWeightedScore: { $gte: 8 } })
+    // Rule 1: High-conviction opportunity (Evaluation score >= 7.5 or High Potential)
+    const highEvaluations = await Evaluation.find({
+      investor: investorId,
+      $or: [{ overallScore: { $gte: 7.5 } }, { investmentDecision: 'High Potential' }],
+    })
       .populate('startup', 'startupName sector stage logo')
       .lean();
 
@@ -23,7 +26,7 @@ const investorInsightService = {
         insights.push({
           id: `eval-high-${ev._id}`,
           title: `High-Conviction Opportunity: ${ev.startup.startupName}`,
-          description: `Venture evaluated with a strong score of ${ev.overallWeightedScore}/10 (${ev.recommendation || 'High Priority'}).`,
+          description: `Venture evaluated with a strong score of ${(ev.overallScore || 0).toFixed(1)}/10 (${ev.investmentDecision || 'High Priority'}).`,
           priority: 'high',
           type: 'evaluation',
           startupId: ev.startup._id,

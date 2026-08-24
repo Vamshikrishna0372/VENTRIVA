@@ -33,7 +33,6 @@ const userSchema = new mongoose.Schema(
         message: 'Role must be either founder, investor, or admin',
       },
       required: [true, 'Role is required'],
-      default: 'founder',
     },
     avatar: {
       type: String,
@@ -114,6 +113,11 @@ const userSchema = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    googleId: {
+      type: String,
+      default: null,
+      sparse: true,
     },
     lastLogin: {
       type: Date,

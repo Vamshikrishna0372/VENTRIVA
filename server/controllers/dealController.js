@@ -137,8 +137,10 @@ const getDealById = async (req, res, next) => {
     }
 
     // RBAC Isolation
-    const isFounder = deal.founder._id.toString() === req.user._id.toString();
-    const isInvestor = deal.investor._id.toString() === req.user._id.toString();
+    const founderId = deal.founder?._id ? deal.founder._id.toString() : deal.founder?.toString();
+    const investorId = deal.investor?._id ? deal.investor._id.toString() : deal.investor?.toString();
+    const isFounder = founderId === req.user._id.toString();
+    const isInvestor = investorId === req.user._id.toString();
     const isAdmin = req.user.role === 'admin';
 
     if (!isFounder && !isInvestor && !isAdmin) {
@@ -171,8 +173,8 @@ const updateDealStatus = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Deal Room not found' });
     }
 
-    const isFounder = deal.founder.toString() === req.user._id.toString();
-    const isInvestor = deal.investor.toString() === req.user._id.toString();
+    const isFounder = deal.founder ? deal.founder.toString() === req.user._id.toString() : false;
+    const isInvestor = deal.investor ? deal.investor.toString() === req.user._id.toString() : false;
     const isAdmin = req.user.role === 'admin';
 
     if (!isFounder && !isInvestor && !isAdmin) {
@@ -197,14 +199,18 @@ const updateDealStatus = async (req, res, next) => {
 
     // Notify counterpart
     const recipientId = isInvestor ? deal.founder : deal.investor;
-    await Notification.create({
-      recipient: recipientId,
-      sender: req.user._id,
-      type: 'DEAL_UPDATE',
-      title: 'Deal Room Status Updated',
-      message: `Deal status changed to "${status}".`,
-      link: isInvestor ? `/founder/deals/${deal._id}` : `/investor/deals/${deal._id}`,
-    });
+    if (recipientId) {
+      await Notification.create({
+        user: recipientId,
+        recipient: recipientId,
+        sender: req.user._id,
+        type: 'DEAL_UPDATE',
+        title: 'Deal Room Status Updated',
+        message: `Deal status changed to "${status}".`,
+        relatedEntityType: 'Deal',
+        relatedEntityId: deal._id,
+      });
+    }
 
     res.status(200).json({
       success: true,

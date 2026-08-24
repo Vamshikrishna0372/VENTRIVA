@@ -81,7 +81,7 @@ exports.signDocument = async (req, res, next) => {
 
     const existingSig = await SignatureRecord.findOne({ document: doc._id, signer: req.user._id });
     if (existingSig && existingSig.status === 'Signed') {
-      return res.status(400).json({ success: false, message: 'You have already signed this document' });
+      return res.status(200).json({ success: true, message: 'You have already signed this document', data: { document: doc, signature: existingSig } });
     }
 
     const signatureRef = `SIG-${req.user._id.toString().substring(0, 6)}-${Date.now()}`;

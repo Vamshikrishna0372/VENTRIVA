@@ -20,6 +20,11 @@ export const updateUserStatus = async (id, isActive, reason = '') => {
   return response.data;
 };
 
+export const deleteUserAccount = async (id) => {
+  const response = await api.delete(`/admin/users/${id}`);
+  return response.data;
+};
+
 export const updateUserVerification = async (id, isVerified) => {
   const response = await api.patch(`/admin/users/${id}/verification`, { isVerified });
   return response.data;

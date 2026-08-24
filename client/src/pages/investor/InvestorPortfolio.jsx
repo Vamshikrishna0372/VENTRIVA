@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, Building2, TrendingUp, DollarSign, ArrowRight, Loader2, Cpu } from 'lucide-react';
+import {
+  Briefcase,
+  Building2,
+  TrendingUp,
+  DollarSign,
+  ArrowRight,
+  Loader2,
+  Cpu,
+  Sparkles,
+  RefreshCw,
+  AlertTriangle,
+  PieChart,
+  Shield,
+  Layers,
+  LogOut,
+} from 'lucide-react';
 import { Card, CardHeader, CardBody } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import MetricCard from '../../components/analytics/MetricCard';
@@ -11,6 +26,7 @@ export const InvestorPortfolio = () => {
   const [investments, setInvestments] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
     fetchPortfolioData();
@@ -18,16 +34,18 @@ export const InvestorPortfolio = () => {
 
   const fetchPortfolioData = async () => {
     setIsLoading(true);
+    setIsError(false);
     try {
       const [invRes, anaRes] = await Promise.all([
         getMyInvestments(),
         getPortfolioAnalytics(),
       ]);
 
-      if (invRes?.success) setInvestments(invRes.data);
-      if (anaRes?.success) setAnalytics(anaRes.data);
+      if (invRes?.success) setInvestments(invRes.data || []);
+      if (anaRes?.success) setAnalytics(anaRes.data || null);
     } catch (err) {
       console.error('Error fetching investor portfolio:', err);
+      setIsError(true);
     } finally {
       setIsLoading(false);
     }
@@ -42,15 +60,71 @@ export const InvestorPortfolio = () => {
     );
   }
 
-  const { totalInvestedCapital = 0, totalCurrentValue = 0, unrealizedGainLoss = 0, returnMultiple = 1.0, totalCompanies = 0 } = analytics || {};
+  const {
+    totalInvestedCapital = 0,
+    totalCurrentValue = 0,
+    totalCompanies = 0,
+    returnMultiple: calcMultiple,
+  } = analytics || {};
+
+  const returnMultiple = calcMultiple !== undefined
+    ? calcMultiple
+    : (totalInvestedCapital > 0 ? (totalCurrentValue / totalInvestedCapital).toFixed(2) : '0.0');
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-2">
-        <h1 className="text-2xl font-bold text-slate-100">Venture Portfolio Dashboard</h1>
-        <p className="text-sm text-slate-400">Post-investment monitoring, ownership tracking, founder progress updates, and portfolio financial performance.</p>
+      <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-100">Venture Portfolio Dashboard</h1>
+            <p className="text-sm text-slate-400">
+              Post-investment monitoring, ownership tracking, founder progress updates, and portfolio financial performance.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" icon={RefreshCw} onClick={fetchPortfolioData}>
+              Refresh
+            </Button>
+            <Link to="/investor/portfolio/intelligence">
+              <Button variant="primary" size="sm" icon={Sparkles}>
+                Intelligence & Risk
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Connected Workflows Quick Bar */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800/80 text-xs font-mono">
+          <Link to="/investor/portfolio/intelligence" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-brand-400" /> Risk & Intelligence
+          </Link>
+          <Link to="/investor/cap-table" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-indigo-400" /> Cap Table Engine
+          </Link>
+          <Link to="/investor/governance" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Shield className="w-3.5 h-3.5 text-emerald-400" /> Governance
+          </Link>
+          <Link to="/investor/follow-on-investments" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-amber-400" /> Follow-on Opps
+          </Link>
+          <Link to="/investor/exits" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <LogOut className="w-3.5 h-3.5 text-rose-400" /> Exits & Liquidity
+          </Link>
+        </div>
       </div>
+
+      {/* Error Recovery Banner */}
+      {isError && (
+        <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl flex items-center justify-between text-xs text-rose-300">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400" />
+            <span>Could not refresh portfolio data. Please check connection and try again.</span>
+          </div>
+          <Button variant="outline" size="xs" onClick={fetchPortfolioData}>Retry</Button>
+        </div>
+      )}
 
       {/* Aggregate Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -68,6 +142,11 @@ export const InvestorPortfolio = () => {
             <p className="text-xs text-slate-400 max-w-md mx-auto">
               When an active Deal Room completes closing, your venture investment will appear here for ongoing post-investment monitoring.
             </p>
+            <div className="pt-2">
+              <Link to="/investor/pipeline">
+                <Button variant="primary" size="sm">Explore Active Deal Pipeline</Button>
+              </Link>
+            </div>
           </CardBody>
         </Card>
       ) : (
@@ -82,7 +161,7 @@ export const InvestorPortfolio = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-100">{inv.startup?.startupName || 'Portfolio Company'}</h3>
-                      <p className="text-xs text-slate-400">{inv.startup?.sector} • {inv.investmentType}</p>
+                      <p className="text-xs text-slate-400">{inv.startup?.sector || 'Venture'} • {inv.investmentType || 'Equity'}</p>
                     </div>
                   </div>
                   <PortfolioHealthBadge healthStatus={inv.healthStatus} score={inv.healthScore} />
@@ -99,7 +178,7 @@ export const InvestorPortfolio = () => {
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 uppercase block">MOIC</span>
-                    <span className="font-bold text-emerald-400">{inv.returnMultiple}x</span>
+                    <span className="font-bold text-emerald-400">{inv.returnMultiple || 1.0}x</span>
                   </div>
                 </div>
 
@@ -120,3 +199,4 @@ export const InvestorPortfolio = () => {
 };
 
 export default InvestorPortfolio;
+

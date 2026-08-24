@@ -78,7 +78,7 @@ export const FounderClosings = () => {
                 <CardBody className="space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                     <div>
-                      <h3 className="text-base font-bold text-slate-100">{startup.companyName || 'Venture'}</h3>
+                      <h3 className="text-base font-bold text-slate-100">{startup.companyName || startup.startupName || startup.name || 'Venture'}</h3>
                       <p className="text-xs text-slate-400">
                         Investor: <span className="text-slate-200 font-semibold">{investor.name || 'Platform Investor'}</span>
                       </p>

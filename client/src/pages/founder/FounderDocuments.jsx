@@ -29,6 +29,7 @@ import { getDocumentsByStartup, downloadDocumentBlob, deleteDocument } from '../
 
 export const FounderDocuments = () => {
   const [startup, setStartup] = useState(null);
+  const [startupsList, setStartupsList] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -51,6 +52,7 @@ export const FounderDocuments = () => {
       const startupRes = await getMyStartup();
       if (startupRes?.success && startupRes?.startup) {
         setStartup(startupRes.startup);
+        setStartupsList([startupRes.startup]);
         const docRes = await getDocumentsByStartup(startupRes.startup._id);
         if (docRes?.success && Array.isArray(docRes.documents)) {
           setDocuments(docRes.documents);

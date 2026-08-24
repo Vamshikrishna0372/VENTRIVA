@@ -10,6 +10,10 @@ exports.getBoardMembers = async (req, res, next) => {
     if (!targetStartup && req.user.role === 'founder') {
       const startup = await Startup.findOne({ founder: req.user._id });
       if (startup) targetStartup = startup._id;
+    } else if (!targetStartup && req.user.role === 'investor') {
+      const Investment = require('../models/Investment');
+      const inv = await Investment.findOne({ investor: req.user._id });
+      if (inv) targetStartup = inv.startup;
     }
 
     if (!targetStartup) {

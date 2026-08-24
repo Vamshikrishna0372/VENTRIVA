@@ -6,6 +6,7 @@ import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
 import { Card } from '../../components/common/Card';
 import { useAuth } from '../../context/AuthContext';
+import GoogleSignInButton from '../../components/auth/GoogleSignInButton';
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
@@ -121,6 +122,15 @@ export const RegisterPage = () => {
               <span>{errorMessage}</span>
             </div>
           )}
+
+          {/* Official Google Identity Services Sign-In Button */}
+          <GoogleSignInButton role={role} />
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-800" />
+            <span className="text-[10px] font-mono text-slate-500 uppercase">Or register with email</span>
+            <div className="flex-1 h-px bg-slate-800" />
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex items-center justify-between">

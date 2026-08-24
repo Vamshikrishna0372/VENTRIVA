@@ -190,10 +190,13 @@ exports.getCommitmentById = async (req, res, next) => {
     }
 
     // Access authorization check
-    if (req.user.role === 'investor' && commitment.investor._id.toString() !== req.user._id.toString()) {
+    const investorId = commitment.investor?._id ? commitment.investor._id.toString() : commitment.investor?.toString();
+    const founderId = commitment.founder?._id ? commitment.founder._id.toString() : commitment.founder?.toString();
+
+    if (req.user.role === 'investor' && investorId !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: 'Access denied to this commitment record' });
     }
-    if (req.user.role === 'founder' && commitment.founder.toString() !== req.user._id.toString()) {
+    if (req.user.role === 'founder' && founderId !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: 'Access denied to this commitment record' });
     }
 
@@ -278,6 +281,52 @@ exports.acceptCommitment = async (req, res, next) => {
     commitment.committedAt = new Date();
     commitment.updatedBy = req.user._id;
     await commitment.save();
+
+    // Auto-activate Deal Room
+    let deal = await Deal.findOne({ startup: commitment.startup, investor: commitment.investor });
+    if (!deal) {
+      deal = await Deal.create({
+        startup: commitment.startup,
+        investor: commitment.investor,
+        founder: commitment.founder,
+        targetInvestment: commitment.committedAmount || commitment.requestedAmount,
+        valuation: commitment.proposedValuation,
+        status: 'Active',
+        termsSummary: `Deal Room launched from accepted commitment ($${commitment.committedAmount.toLocaleString()})`,
+      });
+    }
+
+    // Auto-create Closing Transaction so it appears in Closing Pipeline
+    const ClosingTransaction = require('../models/ClosingTransaction');
+    let closing = await ClosingTransaction.findOne({ commitment: commitment._id });
+    if (!closing) {
+      const capTableEngineService = require('../services/capTableEngineService');
+      const equity = capTableEngineService.calculateTransactionEquity({
+        preMoneyValuation: commitment.proposedValuation || 5000000,
+        investmentAmount: commitment.committedAmount,
+      });
+
+      closing = await ClosingTransaction.create({
+        fundraisingRound: commitment.fundraisingRound,
+        deal: deal._id,
+        commitment: commitment._id,
+        startup: commitment.startup,
+        founder: commitment.founder,
+        investor: commitment.investor,
+        transactionType: 'Priced Equity Round',
+        transactionStatus: 'Pending',
+        committedAmount: commitment.committedAmount,
+        finalInvestmentAmount: commitment.committedAmount,
+        agreedValuation: commitment.proposedValuation || 5000000,
+        preMoneyValuation: commitment.proposedValuation || 5000000,
+        postMoneyValuation: equity.postMoneyValuation,
+        ownershipPercentage: equity.ownershipPercentage,
+        sharePrice: equity.sharePrice,
+        sharesIssued: equity.sharesIssued,
+        shareClass: 'Preferred Stock - Seed',
+        createdBy: req.user._id,
+      });
+    }
 
     await fundraisingStatusService.updateRoundProgress(commitment.fundraisingRound, req.user._id);
 

@@ -23,7 +23,7 @@ export const InvestorMatchCard = ({ limit = 3 }) => {
       }
     } catch (err) {
       console.error('Error fetching investor matches:', err);
-    } font: {
+    } finally {
       setIsLoading(false);
     }
   };

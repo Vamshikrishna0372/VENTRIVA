@@ -5,6 +5,7 @@ const {
   getAdminUsers,
   getAdminUserById,
   updateUserStatus,
+  deleteUserAccount,
   updateUserVerification,
   getAdminStartups,
   getAdminStartupById,
@@ -35,6 +36,7 @@ router.get('/analytics', getAdminAnalytics);
 router.get('/users', getAdminUsers);
 router.get('/users/:id', getAdminUserById);
 router.patch('/users/:id/status', updateUserStatus);
+router.delete('/users/:id', deleteUserAccount);
 router.patch('/users/:id/verification', updateUserVerification);
 
 // Startup Governance & Verification

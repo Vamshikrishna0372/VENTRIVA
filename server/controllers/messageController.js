@@ -89,6 +89,10 @@ const getMessages = async (req, res, next) => {
   try {
     const { conversationId } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+      return res.status(400).json({ success: false, message: 'Invalid Conversation ID format' });
+    }
+
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       return res.status(404).json({ success: false, message: 'Conversation thread not found' });

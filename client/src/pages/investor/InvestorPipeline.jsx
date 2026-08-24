@@ -1,6 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Columns, List, Search, Filter, Compass, AlertTriangle, Clock, DollarSign, Plus, Loader2 } from 'lucide-react';
+import {
+  Columns,
+  List,
+  Search,
+  Filter,
+  Compass,
+  AlertTriangle,
+  Clock,
+  DollarSign,
+  Plus,
+  Loader2,
+  RefreshCw,
+  GitPullRequest,
+  ClipboardCheck,
+  Target,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Select } from '../../components/common/Select';
 import { Button } from '../../components/common/Button';
@@ -14,6 +32,8 @@ export const InvestorPipeline = () => {
   const [pipelines, setPipelines] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   // Filters & View State
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' vs 'list'
@@ -29,6 +49,7 @@ export const InvestorPipeline = () => {
 
   const fetchPipelineData = async () => {
     setIsLoading(true);
+    setIsError(false);
     try {
       const [pipeRes, analyticsRes] = await Promise.all([
         getMyPipelines({
@@ -48,27 +69,29 @@ export const InvestorPipeline = () => {
       }
     } catch (err) {
       console.error('Error fetching pipeline data:', err);
+      setIsError(true);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleStageChange = async (startupId, newStage) => {
+    setFeedback({ type: '', message: '' });
     try {
       await updatePipelineStage(startupId, newStage);
-      // Optimistically update local pipelines state
       setPipelines((prev) =>
         prev.map((item) =>
           item.startup._id === startupId ? { ...item, stage: newStage } : item
         )
       );
-      // Refresh aggregate analytics
+      setFeedback({ type: 'success', message: `Deal stage updated to ${newStage}!` });
       const analyticsRes = await getPipelineAnalytics();
       if (analyticsRes?.success && analyticsRes?.analytics) {
         setAnalytics(analyticsRes.analytics);
       }
     } catch (err) {
-      alert(err?.response?.data?.message || 'Failed to update deal stage');
+      console.error('Error updating stage:', err);
+      setFeedback({ type: 'error', message: err?.response?.data?.message || 'Failed to update deal stage' });
       fetchPipelineData();
     }
   };
@@ -99,6 +122,9 @@ export const InvestorPipeline = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button onClick={fetchPipelineData} icon={RefreshCw} variant="outline" size="sm">
+              Refresh
+            </Button>
             <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex gap-1">
               <button
                 type="button"
@@ -165,7 +191,45 @@ export const InvestorPipeline = () => {
             ]}
           />
         </div>
+
+        {/* Connected Workflows Quick Bar */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800/80 text-xs font-mono">
+          <Link to="/investor/discover" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5 text-brand-400" /> Discovery Engine
+          </Link>
+          <Link to="/investor/deals" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <GitPullRequest className="w-3.5 h-3.5 text-emerald-400" /> Deal Rooms & Term Sheets
+          </Link>
+          <Link to="/investor/evaluations" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <ClipboardCheck className="w-3.5 h-3.5 text-indigo-400" /> Venture Evaluations
+          </Link>
+          <Link to="/investor/strategy" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5 text-purple-400" /> Portfolio Strategy
+          </Link>
+          <Link to="/investor/closings" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> Closing Pipeline
+          </Link>
+        </div>
       </div>
+
+      {feedback.message && (
+        <div className={`p-4 rounded-xl border text-xs flex items-center gap-2.5 ${
+          feedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+        }`}>
+          {feedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" /> : <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />}
+          <span>{feedback.message}</span>
+        </div>
+      )}
+
+      {isError && (
+        <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl flex items-center justify-between text-xs text-rose-300">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400" />
+            <span>Failed to load deal pipeline dataset. Please try again.</span>
+          </div>
+          <Button variant="outline" size="xs" onClick={fetchPipelineData}>Retry</Button>
+        </div>
+      )}
 
       {/* Pipeline Analytics Metrics Bar */}
       {analytics && (

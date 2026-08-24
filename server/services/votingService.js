@@ -10,6 +10,8 @@ class VotingService {
    */
   async calculateVotingPower({ resolution, userId }) {
     const Startup = require('../models/Startup');
+    const Investment = require('../models/Investment');
+
     const startup = await Startup.findById(resolution.startup);
     if (startup && startup.founder.toString() === userId.toString()) {
       return 1;
@@ -17,15 +19,28 @@ class VotingService {
 
     if (resolution.resolutionType === 'Board Vote' || resolution.meeting) {
       const boardMember = await BoardMember.findOne({ startup: resolution.startup, user: userId, status: 'Active' });
-      if (!boardMember || boardMember.role === 'Observer') return 0;
-      return boardMember.votingPower || 1;
+      if (boardMember) {
+        if (boardMember.role === 'Observer') return 0;
+        return boardMember.votingPower || 1;
+      }
+      // If user has an active investment or shareholding in the venture, grant board voting power = 1
+      const investment = await Investment.findOne({ startup: resolution.startup, investor: userId, investmentStatus: 'Active' });
+      if (investment) return 1;
+      return 0;
     } else {
-      // Shareholder vote: voting power based on persisted equity shareholder percentage
+      // Shareholder vote: voting power based on persisted equity shareholder percentage or investment holding
       const shareholder = await Shareholder.findOne({ startup: resolution.startup, user: userId, status: 'Active' });
-      if (!shareholder || !shareholder.votingRights) return 0;
-      return shareholder.ownershipPercentage || 1;
+      if (shareholder && shareholder.votingRights) {
+        return shareholder.ownershipPercentage || 1;
+      }
+      const investment = await Investment.findOne({ startup: resolution.startup, investor: userId, investmentStatus: 'Active' });
+      if (investment) {
+        return investment.ownershipPercentage || 1;
+      }
+      return 0;
     }
   }
+
 
   /**
    * Cast a vote on a resolution

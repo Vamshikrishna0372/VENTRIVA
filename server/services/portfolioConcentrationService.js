@@ -5,7 +5,7 @@ const Investment = require('../models/Investment');
  * Portfolio Concentration Analysis Engine
  */
 const analyzePortfolioConcentration = async (investorId) => {
-  const matchQuery = investorId
+  const matchQuery = (investorId && mongoose.Types.ObjectId.isValid(investorId))
     ? { investor: new mongoose.Types.ObjectId(investorId), isArchived: false }
     : { isArchived: false };
 

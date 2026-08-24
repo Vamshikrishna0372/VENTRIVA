@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Loader2, ArrowLeft, ShieldCheck, FileText, CheckCircle2, DollarSign, PenTool } from 'lucide-react';
+import {
+  Loader2,
+  ArrowLeft,
+  ShieldCheck,
+  FileText,
+  CheckCircle2,
+  DollarSign,
+  PenTool,
+  PieChart,
+  Building2,
+  Briefcase,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
 import { Card, CardHeader, CardBody } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { ClosingStatusBadge } from '../../components/closing/ClosingStatusBadge';
@@ -16,6 +29,7 @@ export const InvestorClosingDetail = () => {
   const { id } = useParams();
   const [transactionData, setTransactionData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [actionMessage, setActionMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
@@ -34,17 +48,33 @@ export const InvestorClosingDetail = () => {
     }
   };
 
+  const handleUpdateConditionStatus = async (conditionId, status) => {
+    try {
+      const res = await api.patch(`/closings/conditions/${conditionId}`, { status });
+      if (res.data?.success) {
+        setActionMessage({ type: 'success', text: `Condition marked as ${status}!` });
+        fetchClosingDetail();
+      } else {
+        setActionMessage({ type: 'error', text: res.data?.message || 'Condition update failed' });
+      }
+    } catch (err) {
+      console.error('Error updating condition status:', err);
+      setActionMessage({ type: 'error', text: 'Error updating condition status' });
+    }
+  };
+
   const handleSignDocument = async (docId) => {
     try {
       const res = await api.post(`/closings/documents/${docId}/sign`, { signerRole: 'Investor' });
       if (res.data?.success) {
-        setActionMessage({ type: 'success', text: 'Digital signature recorded!' });
+        setActionMessage({ type: 'success', text: 'Digital signature recorded & timestamped!' });
         fetchClosingDetail();
       } else {
         setActionMessage({ type: 'error', text: res.data?.message || 'Signature failed' });
       }
     } catch (err) {
       console.error(err);
+      setActionMessage({ type: 'error', text: 'Error signing document' });
     }
   };
 
@@ -52,11 +82,33 @@ export const InvestorClosingDetail = () => {
     try {
       const res = await api.post(`/closings/${id}/payment`, paymentData);
       if (res.data?.success) {
-        setActionMessage({ type: 'success', text: 'Wire transfer payment reference submitted' });
+        setActionMessage({ type: 'success', text: 'Wire transfer payment reference recorded successfully!' });
         fetchClosingDetail();
+      } else {
+        setActionMessage({ type: 'error', text: res.data?.message || 'Payment reference submission failed' });
       }
     } catch (err) {
       console.error(err);
+      setActionMessage({ type: 'error', text: 'Error submitting payment reference' });
+    }
+  };
+
+  const handleCompleteClosing = async () => {
+    setIsCompleting(true);
+    setActionMessage({ type: '', text: '' });
+    try {
+      const res = await api.post(`/closings/${id}/complete`);
+      if (res.data?.success) {
+        setActionMessage({ type: 'success', text: 'Transaction Closed & Executed! Portfolio holding and cap table updated.' });
+        fetchClosingDetail();
+      } else {
+        setActionMessage({ type: 'error', text: res.data?.message || 'Transaction closure failed' });
+      }
+    } catch (err) {
+      console.error(err);
+      setActionMessage({ type: 'error', text: err.response?.data?.message || 'Server error finalizing closing' });
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -75,18 +127,35 @@ export const InvestorClosingDetail = () => {
         <p className="text-sm text-slate-400">Closing transaction not found.</p>
         <Link to="/investor/closings">
           <Button size="sm" variant="brand">
-            Back to Closings
+            Back to Closings Overview
           </Button>
         </Link>
       </div>
     );
   }
 
+  const startup = transactionData.startup || {};
+
   return (
     <div className="space-y-6">
-      <Link to="/investor/closings" className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 font-mono">
-        <ArrowLeft className="w-4 h-4" /> Back to Closings Overview
-      </Link>
+      {/* Navigation & Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Link to="/investor/closings" className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 font-mono">
+          <ArrowLeft className="w-4 h-4" /> Back to Closings Overview
+        </Link>
+
+        {/* Quick connected bar */}
+        <div className="flex flex-wrap gap-2 text-xs font-mono">
+          <Link to="/investor/portfolio" className="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:border-brand-500/50 flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5 text-emerald-400" /> Portfolio Holdings
+          </Link>
+          {startup._id && (
+            <Link to={`/investor/cap-table/${startup._id}`} className="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:border-brand-500/50 flex items-center gap-1.5">
+              <PieChart className="w-3.5 h-3.5 text-indigo-400" /> Startup Cap Table
+            </Link>
+          )}
+        </div>
+      </div>
 
       {actionMessage.text && (
         <div
@@ -94,6 +163,7 @@ export const InvestorClosingDetail = () => {
             actionMessage.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
           }`}
         >
+          {actionMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
           <span>{actionMessage.text}</span>
         </div>
       )}
@@ -102,7 +172,11 @@ export const InvestorClosingDetail = () => {
       <ClosingProgressCard transaction={transactionData} />
 
       {/* Validation Panel */}
-      <ClosingValidationPanel validation={transactionData.validation} />
+      <ClosingValidationPanel
+        validation={transactionData.validation}
+        onCompleteClosing={handleCompleteClosing}
+        isCompleting={isCompleting}
+      />
 
       {/* Conditions & Payment Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -110,7 +184,10 @@ export const InvestorClosingDetail = () => {
           <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider font-mono">
             Closing Conditions Checklist
           </h3>
-          <ClosingConditionList conditions={transactionData.conditions || []} />
+          <ClosingConditionList
+            conditions={transactionData.conditions || []}
+            onUpdateStatus={handleUpdateConditionStatus}
+          />
         </div>
 
         <div className="space-y-3">
@@ -149,3 +226,4 @@ export const InvestorClosingDetail = () => {
 };
 
 export default InvestorClosingDetail;
+

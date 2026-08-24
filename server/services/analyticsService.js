@@ -117,9 +117,11 @@ const analyticsService = {
 
     const ddChecklists = await DueDiligenceChecklist.find({ investor: investorId }).lean();
 
+    const discoveredCount = await Startup.countDocuments({ isPublished: true, isDeleted: false, profileVisibility: { $ne: 'Private' } });
+
     // Deal Funnel counts
     const funnel = {
-      discovered: shortlistedCount * 3 + pipelines.length + 5, // Estimation based on activity
+      discovered: Math.max(discoveredCount, shortlistedCount, pipelines.length),
       shortlisted: shortlistedCount,
       evaluated: totalEvaluationsCount,
       interested: interests.length,

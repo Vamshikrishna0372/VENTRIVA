@@ -61,6 +61,13 @@ const updateInvestorProfile = async (req, res, next) => {
     if (maximumInvestment !== undefined) user.maximumInvestment = Number(maximumInvestment) || 0;
     if (investmentCurrency !== undefined) user.investmentCurrency = investmentCurrency;
 
+    if (user.minimumInvestment > 0 && user.maximumInvestment > 0 && user.minimumInvestment > user.maximumInvestment) {
+      return res.status(400).json({
+        success: false,
+        message: 'Minimum investment check size cannot exceed maximum check size',
+      });
+    }
+
     await user.save();
 
     res.status(200).json({

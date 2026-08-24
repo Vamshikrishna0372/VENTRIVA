@@ -37,7 +37,7 @@ export const EvaluationScoreInput = ({ category, score, onChange }) => {
             <button
               key={num}
               type="button"
-              onClick={() => onChange(category.id, num)}
+              onClick={() => onChange(category.id, isSelected ? null : num)}
               className={`h-10 rounded-xl font-bold text-xs transition-all flex flex-col items-center justify-center ${
                 isSelected
                   ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30 scale-105'

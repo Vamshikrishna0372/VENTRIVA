@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Sparkles,
   Search,
@@ -14,10 +14,22 @@ import {
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Card } from '../../components/common/Card';
+import { useAuth } from '../../context/AuthContext';
 
 export const LandingPage = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
+
+  // State B: Authenticated users visiting "/" are redirected to their workspace
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const target = user.role === 'admin' ? '/admin/dashboard' : user.role === 'founder' ? '/founder/dashboard' : '/investor/dashboard';
+      navigate(target, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
   return (
-    <div className="relative overflow-hidden bg-slate-950 text-slate-100">
+    <div className="relative overflow-hidden bg-slate-950 text-slate-100 min-h-screen">
       {/* Background Glow Accents */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-gradient-to-b from-brand-600/15 via-brand-500/5 to-transparent blur-3xl pointer-events-none" />
       <div className="absolute top-96 left-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -31,7 +43,7 @@ export const LandingPage = () => {
           <Badge variant="brand" size="xs">Platform Active</Badge>
         </div>
 
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-[1.1]">
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-100 max-w-4xl mx-auto leading-[1.1]">
           Discover. Evaluate. <span className="bg-clip-text text-transparent bg-gradient-to-r from-brand-400 via-indigo-300 to-emerald-400">Connect.</span>
         </h1>
 
@@ -160,4 +172,3 @@ export const LandingPage = () => {
 };
 
 export default LandingPage;
-

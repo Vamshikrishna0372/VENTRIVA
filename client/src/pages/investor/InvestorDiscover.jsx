@@ -1,5 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, SlidersHorizontal, RefreshCw, X, ChevronLeft, ChevronRight, Loader2, Building2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  Search,
+  Filter,
+  SlidersHorizontal,
+  RefreshCw,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Building2,
+  Sparkles,
+  Bookmark,
+  ClipboardCheck,
+  Columns,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
@@ -17,7 +34,9 @@ export const InvestorDiscover = () => {
   const [pagination, setPagination] = useState({ page: 1, limit: 9, total: 0, totalPages: 1 });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,6 +74,7 @@ export const InvestorDiscover = () => {
 
   const fetchDiscoveryData = async () => {
     setIsLoading(true);
+    setIsError(false);
     try {
       const params = {
         page: pagination.page,
@@ -80,6 +100,7 @@ export const InvestorDiscover = () => {
       }
     } catch (err) {
       console.error('Error discovering startups:', err);
+      setIsError(true);
       setStartups([]);
     } finally {
       setIsLoading(false);
@@ -96,7 +117,6 @@ export const InvestorDiscover = () => {
     const { name, value } = e.target;
     setFilters((prev) => {
       const updated = { ...prev, [name]: value };
-      // Reset subSector if sector changes
       if (name === 'sector') updated.subSector = 'all';
       return updated;
     });
@@ -120,10 +140,12 @@ export const InvestorDiscover = () => {
   };
 
   const handleToggleShortlist = async (startupId, shouldAdd) => {
+    setFeedback({ type: '', message: '' });
     try {
       if (shouldAdd) {
         await addToShortlist(startupId);
         setShortlistedIds((prev) => new Set([...prev, startupId]));
+        setFeedback({ type: 'success', message: 'Venture saved to your shortlist!' });
       } else {
         await removeFromShortlist(startupId);
         setShortlistedIds((prev) => {
@@ -131,9 +153,11 @@ export const InvestorDiscover = () => {
           next.delete(startupId);
           return next;
         });
+        setFeedback({ type: 'success', message: 'Venture removed from shortlist.' });
       }
     } catch (err) {
       console.error('Error toggling shortlist:', err);
+      setFeedback({ type: 'error', message: 'Failed to update shortlist' });
     }
   };
 
@@ -153,6 +177,9 @@ export const InvestorDiscover = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button onClick={fetchDiscoveryData} icon={RefreshCw} variant="outline" size="sm">
+              Refresh Database
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -184,7 +211,42 @@ export const InvestorDiscover = () => {
             Search
           </Button>
         </form>
+
+        {/* Connected Workflows Quick Bar */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800/80 text-xs font-mono">
+          <Link to="/investor/recommendations" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-brand-400" /> AI Recommendations
+          </Link>
+          <Link to="/investor/shortlist" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Bookmark className="w-3.5 h-3.5 text-cyan-400" /> Saved Shortlist
+          </Link>
+          <Link to="/investor/evaluations" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <ClipboardCheck className="w-3.5 h-3.5 text-indigo-400" /> Evaluation Hub
+          </Link>
+          <Link to="/investor/pipeline" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Columns className="w-3.5 h-3.5 text-amber-400" /> Deal Pipeline
+          </Link>
+        </div>
       </div>
+
+      {feedback.message && (
+        <div className={`p-4 rounded-xl border text-xs flex items-center gap-2.5 ${
+          feedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+        }`}>
+          {feedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" /> : <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />}
+          <span>{feedback.message}</span>
+        </div>
+      )}
+
+      {isError && (
+        <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl flex items-center justify-between text-xs text-rose-300">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400" />
+            <span>Failed to query venture database. Please try again.</span>
+          </div>
+          <Button variant="outline" size="xs" onClick={fetchDiscoveryData}>Retry</Button>
+        </div>
+      )}
 
       {/* Main Grid & Filters Container */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

@@ -1,10 +1,10 @@
 import React from 'react';
-import { Cpu, TrendingUp } from 'lucide-react';
-import { Card, CardHeader, CardBody } from '../common/Card';
+import { Cpu, Trash2 } from 'lucide-react';
+import { Card, CardBody } from '../common/Card';
 import { Badge } from '../common/Badge';
 
-export const ScenarioResultCard = ({ scenario }) => {
-  const { name, scenarioType, projectedCapital, projectedPortfolioValue, projectedMOIC, assumptions } = scenario;
+export const ScenarioResultCard = ({ scenario, onDelete }) => {
+  const { _id, name, scenarioType, projectedCapital, projectedPortfolioValue, projectedMOIC, assumptions } = scenario;
 
   return (
     <Card className="border-slate-800 bg-slate-900">
@@ -17,6 +17,15 @@ export const ScenarioResultCard = ({ scenario }) => {
           <div className="flex items-center gap-2">
             <Badge variant="cyan">SIMULATION</Badge>
             <Badge variant="brand">{scenarioType}</Badge>
+            {onDelete && (
+              <button
+                onClick={() => onDelete(_id)}
+                className="p-1 text-slate-400 hover:text-rose-400 transition-colors"
+                title="Delete Simulation"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 

@@ -203,7 +203,14 @@ const updateInvestmentStatus = async (req, res, next) => {
     }
 
     if (investmentStatus) investment.investmentStatus = investmentStatus;
-    if (healthStatus) investment.healthStatus = healthStatus;
+    if (healthStatus) {
+      investment.healthStatus = healthStatus;
+      if (healthStatus === 'Excellent') investment.healthScore = 95;
+      else if (healthStatus === 'Healthy') investment.healthScore = 80;
+      else if (healthStatus === 'Watch') investment.healthScore = 65;
+      else if (healthStatus === 'At Risk') investment.healthScore = 45;
+      else if (healthStatus === 'Critical') investment.healthScore = 20;
+    }
 
     await investment.save();
 

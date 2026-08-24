@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const FundraisingInvite = require('../models/FundraisingInvite');
 const FundraisingRound = require('../models/FundraisingRound');
 const InvestorCommitment = require('../models/InvestorCommitment');
@@ -13,6 +14,14 @@ exports.createInvite = async (req, res, next) => {
     const { roundId } = req.params;
     const { investorId, message, expiresAt } = req.body;
 
+    if (!roundId || !mongoose.Types.ObjectId.isValid(roundId)) {
+      return res.status(400).json({ success: false, message: 'Invalid fundraising round ID' });
+    }
+
+    if (!investorId || !mongoose.Types.ObjectId.isValid(investorId)) {
+      return res.status(400).json({ success: false, message: 'Please select a valid investor to invite' });
+    }
+
     const round = await FundraisingRound.findById(roundId);
     if (!round) {
       return res.status(404).json({ success: false, message: 'Fundraising round not found' });
@@ -23,31 +32,60 @@ exports.createInvite = async (req, res, next) => {
     }
 
     const investor = await User.findById(investorId);
-    if (!investor || investor.role !== 'investor') {
-      return res.status(404).json({ success: false, message: 'Investor not found or user is not an investor' });
+    if (!investor || investor.role !== 'investor' || investor.isActive === false) {
+      return res.status(404).json({ success: false, message: 'Investor not found or user is not an active investor' });
     }
 
     // Check for existing invite
-    const existingInvite = await FundraisingInvite.findOne({
+    let invite = await FundraisingInvite.findOne({
       fundraisingRound: round._id,
       investor: investor._id,
     });
 
-    if (existingInvite && existingInvite.status === 'Pending') {
-      return res.status(400).json({ success: false, message: 'A pending invitation already exists for this investor' });
+    let isResend = false;
+
+    if (invite) {
+      if (invite.status === 'Pending') {
+        return res.status(409).json({
+          success: false,
+          message: 'A pending invitation already exists for this investor.',
+        });
+      }
+
+      if (invite.status === 'Accepted') {
+        return res.status(409).json({
+          success: false,
+          message: 'This investor has already accepted the invitation to this round.',
+        });
+      }
+
+      if (invite.status === 'Declined' || invite.status === 'Expired' || invite.status === 'Withdrawn') {
+        isResend = true;
+        invite.status = 'Pending';
+        invite.invitedBy = req.user._id;
+        invite.message = message ? message.trim() : '';
+        invite.expiresAt = expiresAt ? new Date(expiresAt) : null;
+        invite.respondedAt = null;
+        await invite.save();
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: `Unable to re-invite investor with current status '${invite.status}'`,
+        });
+      }
+    } else {
+      invite = await FundraisingInvite.create({
+        fundraisingRound: round._id,
+        startup: round.startup,
+        investor: investor._id,
+        invitedBy: req.user._id,
+        status: 'Pending',
+        message: message ? message.trim() : '',
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      });
     }
 
-    const invite = await FundraisingInvite.create({
-      fundraisingRound: round._id,
-      startup: round.startup,
-      investor: investor._id,
-      invitedBy: req.user._id,
-      status: 'Pending',
-      message: message || '',
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
-    });
-
-    // Create commitment record in 'Invited' state
+    // Create or update commitment record in 'Invited' state
     await InvestorCommitment.findOneAndUpdate(
       { fundraisingRound: round._id, investor: investor._id },
       {
@@ -69,27 +107,36 @@ exports.createInvite = async (req, res, next) => {
       investor: investor._id,
       founder: round.founder,
       actor: req.user._id,
-      action: 'INVESTOR_INVITED',
-      description: `Invited investor '${investor.name}' to fundraising round '${round.roundName}'`,
+      action: isResend ? 'INVESTOR_REINVITED' : 'INVESTOR_INVITED',
+      description: isResend
+        ? `Resent invitation to investor '${investor.name}' for fundraising round '${round.roundName}'`
+        : `Invited investor '${investor.name}' to fundraising round '${round.roundName}'`,
     });
 
-    // Send notification
+    // Send new notification for the investor
     await Notification.create({
       user: investor._id,
       type: 'FundraisingInvite',
-      title: 'New Fundraising Invitation',
-      message: `You have been invited to review and participate in ${round.roundName}.`,
+      title: isResend ? 'Fundraising Invitation Resent' : 'New Fundraising Invitation',
+      message: isResend
+        ? `The founder has sent a new invitation to review and participate in ${round.roundName}.`
+        : `You have been invited to review and participate in ${round.roundName}.`,
       relatedEntityType: 'FundraisingInvite',
       relatedEntityId: invite._id,
     });
 
-    res.status(201).json({
+    const statusCode = isResend ? 200 : 201;
+    const responseMsg = isResend ? 'Invitation sent again successfully.' : 'Investor invitation sent successfully.';
+
+    return res.status(statusCode).json({
       success: true,
+      isResend,
+      message: responseMsg,
       data: invite,
     });
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({ success: false, message: 'Invitation already exists for this investor and round' });
+      return res.status(409).json({ success: false, message: 'An invitation already exists for this investor and round.' });
     }
     next(error);
   }

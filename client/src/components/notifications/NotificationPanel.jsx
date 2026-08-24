@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, MessageSquare, Calendar, Bookmark, FileText, AlertCircle } from 'lucide-react';
 import { Badge } from '../common/Badge';
 
+import { useAuth } from '../../context/AuthContext';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../../services/notificationService';
 
 export const NotificationPanel = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -27,10 +31,113 @@ export const NotificationPanel = () => {
     }
   };
 
-  const handleMarkRead = async (id) => {
+  const getNotificationTargetRoute = (notif, role) => {
+    const { type, relatedEntityId } = notif;
+
+    if (role === 'founder') {
+      switch (type) {
+        case 'InvestorInterest':
+        case 'InterestResponse':
+          return '/founder/interests';
+        case 'NewMessage':
+          return '/founder/messages';
+        case 'MeetingRequest':
+        case 'MeetingConfirmed':
+        case 'MeetingDeclined':
+        case 'MeetingCancelled':
+        case 'MeetingReminder':
+          return '/founder/meetings';
+        case 'DocumentRequest':
+          return '/founder/document-requests';
+        case 'DealUpdate':
+        case 'DEAL_UPDATE':
+        case 'TermSheetUpdate':
+          return relatedEntityId ? `/founder/deals/${relatedEntityId}` : '/founder/deals';
+        case 'FundraisingInvite':
+        case 'CommitmentUpdate':
+          return relatedEntityId ? `/founder/fundraising/${relatedEntityId}` : '/founder/fundraising';
+        case 'PortfolioUpdate':
+          return '/founder/portfolio';
+        case 'GovernanceVote':
+        case 'BoardResolution':
+          return '/founder/governance';
+        default:
+          return '/founder/dashboard';
+      }
+    }
+
+    if (role === 'admin') {
+      switch (type) {
+        case 'InvestorInterest':
+        case 'InterestResponse':
+        case 'NewMessage':
+        case 'MeetingRequest':
+        case 'MeetingConfirmed':
+        case 'MeetingDeclined':
+        case 'MeetingCancelled':
+        case 'MeetingReminder':
+          return '/admin/communication';
+        case 'DocumentRequest':
+          return '/admin/document-audit';
+        case 'DealUpdate':
+        case 'DEAL_UPDATE':
+        case 'TermSheetUpdate':
+          return '/admin/deals';
+        case 'FundraisingInvite':
+        case 'CommitmentUpdate':
+          return '/admin/fundraising';
+        case 'PortfolioUpdate':
+          return '/admin/portfolio';
+        case 'GovernanceVote':
+        case 'BoardResolution':
+          return '/admin/governance';
+        default:
+          return '/admin/dashboard';
+      }
+    }
+
+    // Default: investor role
+    switch (type) {
+      case 'InvestorInterest':
+      case 'InterestResponse':
+        return '/investor/interests';
+      case 'NewMessage':
+        return '/investor/messages';
+      case 'MeetingRequest':
+      case 'MeetingConfirmed':
+      case 'MeetingDeclined':
+      case 'MeetingCancelled':
+      case 'MeetingReminder':
+        return '/investor/meetings';
+      case 'DocumentRequest':
+        return '/investor/document-requests';
+      case 'DealUpdate':
+      case 'DEAL_UPDATE':
+      case 'TermSheetUpdate':
+        return relatedEntityId ? `/investor/deals/${relatedEntityId}` : '/investor/deals';
+      case 'FundraisingInvite':
+      case 'CommitmentUpdate':
+        return relatedEntityId ? `/investor/fundraising/${relatedEntityId}` : '/investor/fundraising';
+      case 'PortfolioUpdate':
+        return relatedEntityId ? `/investor/portfolio/${relatedEntityId}` : '/investor/portfolio';
+      case 'GovernanceVote':
+      case 'BoardResolution':
+        return '/investor/governance';
+      default:
+        return '/investor/dashboard';
+    }
+  };
+
+  const handleNotificationClick = async (notif) => {
     try {
-      await markNotificationRead(id);
-      fetchNotifications();
+      if (!notif.isRead) {
+        await markNotificationRead(notif._id);
+        fetchNotifications();
+      }
+      setIsOpen(false);
+      const role = user?.role || 'investor';
+      const targetRoute = getNotificationTargetRoute(notif, role);
+      navigate(targetRoute);
     } catch (err) {
       console.error(err);
     }
@@ -87,7 +194,7 @@ export const NotificationPanel = () => {
                 notifications.map((notif) => (
                   <div
                     key={notif._id}
-                    onClick={() => !notif.isRead && handleMarkRead(notif._id)}
+                    onClick={() => handleNotificationClick(notif)}
                     className={`p-3.5 space-y-1 transition-colors cursor-pointer ${
                       !notif.isRead ? 'bg-slate-800/40 border-l-2 border-brand-500' : 'hover:bg-slate-800/20'
                     }`}
@@ -111,3 +218,4 @@ export const NotificationPanel = () => {
 };
 
 export default NotificationPanel;
+

@@ -303,6 +303,44 @@ export const FounderFundraisingDetail = () => {
             <h3 className="text-lg font-bold text-slate-100">Invite Investor to Round</h3>
 
             <form onSubmit={handleSendInvite} className="space-y-4 text-xs">
+              {inviteModalError && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{inviteModalError}</span>
+                </div>
+              )}
+
+              {(() => {
+                const selectedInvite = invites.find(inv => {
+                  const invId = inv.investor?._id || inv.investor;
+                  return invId === inviteInvestorId;
+                });
+                if (selectedInvite) {
+                  if (selectedInvite.status === 'Declined') {
+                    return (
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs">
+                        Previous invitation was <strong>Declined</strong>. Submitting will resend a new invitation request to this investor.
+                      </div>
+                    );
+                  }
+                  if (selectedInvite.status === 'Pending') {
+                    return (
+                      <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-blue-300 text-xs">
+                        An invitation is currently <strong>Pending</strong> for this investor.
+                      </div>
+                    );
+                  }
+                  if (selectedInvite.status === 'Accepted') {
+                    return (
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs">
+                        This investor has already <strong>Accepted</strong> the invitation to this round.
+                      </div>
+                    );
+                  }
+                }
+                return null;
+              })()}
+
               <div>
                 <label className="block text-slate-300 font-medium mb-1">Select Investor *</label>
                 <select
@@ -348,7 +386,11 @@ export const FounderFundraisingDetail = () => {
                   Cancel
                 </Button>
                 <Button type="submit" variant="brand" disabled={isInviting}>
-                  {isInviting ? 'Sending...' : 'Send Invitation'}
+                  {isInviting
+                    ? 'Sending...'
+                    : invites.some(inv => (inv.investor?._id || inv.investor) === inviteInvestorId && (inv.status === 'Declined' || inv.status === 'Expired'))
+                    ? 'Resend Invitation'
+                    : 'Send Invitation'}
                 </Button>
               </div>
             </form>

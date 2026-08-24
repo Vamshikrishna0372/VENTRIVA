@@ -58,6 +58,9 @@ const governanceRoutes = require('./routes/governanceRoutes');
 
 const app = express();
 
+// Trust reverse proxy (Render, Vercel, Cloudflare) for HTTPS & IP headers
+app.set('trust proxy', 1);
+
 // Correlation Request Tracing Header Middleware
 app.use(requestIdMiddleware);
 
@@ -66,11 +69,19 @@ app.use(
   helmet({
     contentSecurityPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   })
 );
 
 // CORS Configuration
-const allowedOrigins = [env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000', 'https://ventriva.onrender.com'];
+const allowedOrigins = [
+  env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://ventriva.vercel.app',
+  'https://ventriva.onrender.com'
+].filter(Boolean);
+
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -83,6 +94,8 @@ app.use(
       }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-ID'],
   })
 );
 

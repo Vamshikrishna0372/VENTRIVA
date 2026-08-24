@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Search, Download, Compass, SlidersHorizontal, Loader2 } from 'lucide-react';
+import { FileText, Search, Download, Compass, SlidersHorizontal, Loader2, AlertCircle, RefreshCw, CheckSquare, GitPullRequest, FileCheck } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -15,6 +15,8 @@ export const InvestorDocuments = () => {
   const [selectedStartupId, setSelectedStartupId] = useState('all');
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -26,6 +28,7 @@ export const InvestorDocuments = () => {
 
   const fetchShortlistAndDocuments = async () => {
     setIsLoading(true);
+    setIsError(false);
     try {
       const shortlistRes = await getShortlist();
       if (shortlistRes?.success && Array.isArray(shortlistRes.shortlists)) {
@@ -54,6 +57,7 @@ export const InvestorDocuments = () => {
       }
     } catch (err) {
       console.error('Error fetching investor documents:', err);
+      setIsError(true);
     } finally {
       setIsLoading(false);
     }
@@ -69,8 +73,9 @@ export const InvestorDocuments = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      setFeedback({ type: 'success', message: `Securely downloaded ${fileName}` });
     } catch (err) {
-      alert('Failed to download document file');
+      setFeedback({ type: 'error', message: 'Failed to download document file. Access token may be expired or unauthorized.' });
     }
   };
 
@@ -89,14 +94,56 @@ export const InvestorDocuments = () => {
 
   return (
     <div className="space-y-6">
+      {/* Workflow Navigation Bar */}
+      <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3 overflow-x-auto text-xs">
+        <span className="text-slate-400 font-mono text-[10px] uppercase tracking-wider whitespace-nowrap">Workflow Nav</span>
+        <div className="flex items-center gap-2">
+          <Link to="/investor/discover" className="px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 transition-colors flex items-center gap-1.5 shrink-0">
+            <Compass className="w-3.5 h-3.5 text-brand-400" /> Discover Engine
+          </Link>
+          <Link to="/investor/document-requests" className="px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 transition-colors flex items-center gap-1.5 shrink-0">
+            <FileCheck className="w-3.5 h-3.5 text-amber-400" /> Document Requests
+          </Link>
+
+          <Link to="/investor/deals" className="px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 transition-colors flex items-center gap-1.5 shrink-0">
+            <GitPullRequest className="w-3.5 h-3.5 text-indigo-400" /> Formal Deal Rooms
+          </Link>
+        </div>
+      </div>
+
+      {/* Action Feedback Notification Banner */}
+      {feedback && (
+        <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 text-xs ${feedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'}`}>
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{feedback.message}</span>
+          </div>
+          <button onClick={() => setFeedback(null)} className="text-slate-400 hover:text-white font-mono text-xs">Dismiss</button>
+        </div>
+      )}
+
+      {/* Error Recovery Banner */}
+      {isError && (
+        <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl flex items-center justify-between gap-3 text-xs text-rose-300">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>Unable to load data room documents from server. Please retry.</span>
+          </div>
+          <Button variant="outline" size="xs" icon={RefreshCw} onClick={fetchShortlistAndDocuments}>Retry</Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-100">Investor Document Hub</h1>
-            <p className="text-sm text-slate-400">Access pitch decks, financials, and diligence files for shortlisted and pipeline ventures.</p>
+            <p className="text-sm text-slate-400">Access pitch decks, financials, and diligence files for shortlisted and portfolio ventures.</p>
           </div>
-          <Badge variant="brand">{filteredDocuments.length} Accessible Documents</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="brand">{filteredDocuments.length} Accessible Documents</Badge>
+            <Button variant="ghost" size="xs" icon={RefreshCw} onClick={fetchShortlistAndDocuments} />
+          </div>
         </div>
 
         {/* Filters */}
@@ -167,7 +214,10 @@ export const InvestorDocuments = () => {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex justify-end">
+              <div className="pt-3 border-t border-slate-800 flex justify-between items-center gap-2">
+                <Link to={`/investor/due-diligence/${doc.startup}`} className="text-xs text-slate-400 hover:text-white font-medium flex items-center gap-1">
+                  <CheckSquare className="w-3.5 h-3.5 text-brand-400" /> Diligence
+                </Link>
                 <Button variant="primary" size="sm" icon={Download} onClick={() => handleDownload(doc._id, doc.originalFileName)}>
                   Secure Download
                 </Button>
@@ -181,3 +231,4 @@ export const InvestorDocuments = () => {
 };
 
 export default InvestorDocuments;
+

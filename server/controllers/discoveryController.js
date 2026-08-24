@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Startup = require('../models/Startup');
 const TeamMember = require('../models/TeamMember');
 const Shortlist = require('../models/Shortlist');
+const User = require('../models/User');
 
 // Helper to escape regex special characters
 const escapeRegex = (text) => {
@@ -30,11 +31,16 @@ const discoverStartups = async (req, res, next) => {
       limit = 12,
     } = req.query;
 
+    // Filter to active founder account IDs to prevent returning orphaned startups
+    const activeFounders = await User.find({ role: 'founder', isActive: { $ne: false } }).select('_id').lean();
+    const activeFounderIds = activeFounders.map((u) => u._id);
+
     // Discovery Eligibility Security Base Query
     const query = {
       isDeleted: false,
       isPublished: true,
-      profileVisibility: 'Investors Only',
+      profileVisibility: { $ne: 'Private' },
+      founder: { $in: activeFounderIds },
     };
 
     // Text Search
@@ -116,10 +122,17 @@ const getStartupDetailForInvestor = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid Startup ObjectId format' });
     }
 
-    const startup = await Startup.findById(id).populate('founder', 'name email organization avatar role').lean();
+    const startup = await Startup.findById(id).populate('founder', 'name email organization avatar role isActive').lean();
 
-    // Security Gate: Reject if startup is deleted, unpublished, or private
-    if (!startup || startup.isDeleted || !startup.isPublished || startup.profileVisibility !== 'Investors Only') {
+    // Security Gate: Reject if startup is deleted, unpublished, private, or has no active founder
+    if (
+      !startup ||
+      startup.isDeleted ||
+      !startup.isPublished ||
+      startup.profileVisibility === 'Private' ||
+      !startup.founder ||
+      startup.founder.isActive === false
+    ) {
       return res.status(404).json({ success: false, message: 'Startup profile unavailable for discovery' });
     }
 

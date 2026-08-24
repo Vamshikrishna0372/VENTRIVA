@@ -101,19 +101,16 @@ const uploadDocument = async (req, res, next) => {
       isPrimary: shouldBePrimary,
     });
 
-    // Create initial version record
-    await DocumentVersion.create({
-      document: doc._id,
-      versionNumber: 1,
-      fileName: doc.fileName,
-      originalFileName: doc.originalFileName,
-      mimeType: doc.mimeType,
-      fileSize: doc.fileSize,
-      storageProvider: doc.storageProvider,
-      storageKey: doc.storageKey,
-      uploadedBy: req.user._id,
-      changeNote: 'Initial upload',
-    });
+    // Create initial version record in embedded array
+    doc.versions = [
+      {
+        versionNumber: 1,
+        fileUrl: doc.storageKey,
+        uploadedBy: req.user._id,
+        createdAt: new Date(),
+      },
+    ];
+    await doc.save();
 
     await logDocumentAccess(doc._id, req.user._id, startup._id, 'UPLOAD', req);
 
@@ -400,7 +397,18 @@ const deleteDocument = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Forbidden: You do not own this document' });
     }
 
-    await storageService.deleteFile(doc.storageKey);
+    if (doc.storageKey) {
+      await storageService.deleteFile(doc.storageKey);
+    }
+
+    if (Array.isArray(doc.versions)) {
+      for (const ver of doc.versions) {
+        if (ver.fileUrl && ver.fileUrl !== doc.storageKey) {
+          await storageService.deleteFile(ver.fileUrl);
+        }
+      }
+    }
+
     await Document.deleteOne({ _id: doc._id });
 
     res.status(200).json({

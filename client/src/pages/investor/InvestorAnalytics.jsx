@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Columns, Bookmark, ClipboardCheck, Sparkles, Lightbulb, DollarSign, Loader2 } from 'lucide-react';
+import {
+  Columns,
+  Bookmark,
+  ClipboardCheck,
+  Sparkles,
+  Lightbulb,
+  DollarSign,
+  Loader2,
+  RefreshCw,
+  Search,
+  Building2,
+  Award,
+  AlertCircle,
+} from 'lucide-react';
 import { Card, CardHeader, CardBody } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -12,6 +25,7 @@ import { getInvestorAnalytics } from '../../services/analyticsService';
 export const InvestorAnalytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
@@ -19,6 +33,7 @@ export const InvestorAnalytics = () => {
 
   const fetchAnalytics = async () => {
     setIsLoading(true);
+    setIsError(false);
     try {
       const res = await getInvestorAnalytics();
       if (res?.success && res?.analytics) {
@@ -26,6 +41,7 @@ export const InvestorAnalytics = () => {
       }
     } catch (err) {
       console.error('Error fetching investor analytics:', err);
+      setIsError(true);
     } finally {
       setIsLoading(false);
     }
@@ -61,6 +77,9 @@ export const InvestorAnalytics = () => {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Button onClick={fetchAnalytics} icon={RefreshCw} variant="outline" size="sm">
+              Refresh Metrics
+            </Button>
             <Link to="/investor/insights">
               <Button variant="outline" size="sm" icon={Lightbulb}>Opportunity Insights</Button>
             </Link>
@@ -69,7 +88,33 @@ export const InvestorAnalytics = () => {
             </Link>
           </div>
         </div>
+
+        {/* Connected Workflows Quick Bar */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800/80 text-xs font-mono">
+          <Link to="/investor/discover" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5 text-brand-400" /> Discovery Engine
+          </Link>
+          <Link to="/investor/portfolio" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5 text-emerald-400" /> Venture Portfolio
+          </Link>
+          <Link to="/investor/portfolio/intelligence" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <Award className="w-3.5 h-3.5 text-purple-400" /> Portfolio Intelligence
+          </Link>
+          <Link to="/investor/exits" className="px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-300 hover:border-brand-500/50 transition-all flex items-center gap-1.5">
+            <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> Realized Exits
+          </Link>
+        </div>
       </div>
+
+      {isError && (
+        <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl flex items-center justify-between text-xs text-rose-300">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400" />
+            <span>Failed to load deal analytics. Please try again.</span>
+          </div>
+          <Button variant="outline" size="xs" onClick={fetchAnalytics}>Retry</Button>
+        </div>
+      )}
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -123,7 +168,7 @@ export const InvestorAnalytics = () => {
       </div>
 
       {/* Deal Funnel Visualization */}
-      <Card>
+      <Card className="border-slate-800 bg-slate-900">
         <CardHeader title="Investment Funnel Conversion" subtitle="Stage progression pipeline" />
         <CardBody className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
@@ -165,3 +210,4 @@ export const InvestorAnalytics = () => {
 };
 
 export default InvestorAnalytics;
+

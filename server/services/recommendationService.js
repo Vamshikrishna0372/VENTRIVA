@@ -91,11 +91,15 @@ const recommendationService = {
     const investor = await User.findById(investorId).lean();
     if (!investor) throw new Error('Investor not found');
 
-    const query = { isPublished: true, isDeleted: false, profileVisibility: 'Investors Only' };
+    const activeFounders = await User.find({ role: 'founder', isActive: { $ne: false } }).select('_id').lean();
+    const activeFounderIds = activeFounders.map((u) => u._id);
 
-    if (filters.sector && filters.sector !== 'all') query.sector = filters.sector;
-    if (filters.stage && filters.stage !== 'all') query.stage = filters.stage;
-    if (filters.businessModel && filters.businessModel !== 'all') query.businessModel = filters.businessModel;
+    const query = {
+      isPublished: true,
+      isDeleted: false,
+      profileVisibility: { $ne: 'Private' },
+      founder: { $in: activeFounderIds },
+    };
 
     const startups = await Startup.find(query).lean();
 

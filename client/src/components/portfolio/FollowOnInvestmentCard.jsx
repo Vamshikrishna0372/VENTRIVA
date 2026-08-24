@@ -18,7 +18,7 @@ export const FollowOnInvestmentCard = ({ opportunity, isInvestor, onApprove, onC
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-slate-100 text-sm">{startup?.startupName || 'Portfolio Startup'}</h4>
+              <h4 className="font-bold text-slate-100 text-sm">{startup?.startupName || startup?.companyName || 'Portfolio Startup'}</h4>
               <p className="text-xs text-slate-400">{round} • {reason}</p>
             </div>
           </div>

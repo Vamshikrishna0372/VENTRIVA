@@ -80,6 +80,8 @@ const calculateInvestorStartupMatch = (investor, startup) => {
   };
 };
 
+const InvestorStrategy = require('../models/InvestorStrategy');
+
 /**
  * Fetch top matching published startups for authenticated investor
  */
@@ -87,8 +89,26 @@ const getMatchingStartupsForInvestor = async (investorId, options = {}) => {
   const investor = await User.findById(investorId).lean();
   if (!investor) throw new Error('Investor user document not found.');
 
-  // Security & Data Visibility Filter: Only published, non-deleted startups
-  const query = { isPublished: true, isDeleted: false };
+  // Fetch active InvestorStrategy to ensure preference synchronization
+  const strategy = await InvestorStrategy.findOne({ investor: investorId, active: true }).lean();
+  if (strategy) {
+    if ((!investor.preferredSectors || investor.preferredSectors.length === 0) && Array.isArray(strategy.targetSectorAllocations)) {
+      investor.preferredSectors = strategy.targetSectorAllocations.map((s) => s.sector);
+    }
+    if ((!investor.preferredStages || investor.preferredStages.length === 0) && Array.isArray(strategy.targetStageAllocations)) {
+      investor.preferredStages = strategy.targetStageAllocations.map((s) => s.stage);
+    }
+    if (!investor.minimumInvestment && strategy.targetInitialCheckSize) {
+      investor.minimumInvestment = Math.round(strategy.targetInitialCheckSize * 0.5);
+      investor.maximumInvestment = Math.round(strategy.targetInitialCheckSize * 2.0);
+    }
+  }
+
+  const activeFounders = await User.find({ role: 'founder', isActive: { $ne: false } }).select('_id').lean();
+  const activeFounderIds = activeFounders.map((u) => u._id);
+
+  // Security & Data Visibility Filter: Only published, non-deleted startups with active founders
+  const query = { isPublished: true, isDeleted: false, founder: { $in: activeFounderIds } };
 
   const startups = await Startup.find(query)
     .populate('founder', 'name email avatar organization')

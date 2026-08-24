@@ -7,7 +7,10 @@ import { Button } from '../common/Button';
 
 import { requestMeeting } from '../../services/meetingService';
 
-export const MeetingRequestModal = ({ startupId, investorId, onClose, onSuccess }) => {
+export const MeetingRequestModal = ({ startupId: initialStartupId, investorId, shortlistedStartups = [], onClose, onSuccess }) => {
+  const [startupId, setStartupId] = useState(
+    initialStartupId || (shortlistedStartups.length > 0 ? shortlistedStartups[0]?.startup?._id || shortlistedStartups[0]?._id : '')
+  );
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [scheduledStart, setScheduledStart] = useState('');
@@ -21,6 +24,11 @@ export const MeetingRequestModal = ({ startupId, investorId, onClose, onSuccess 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    if (!startupId) {
+      setErrorMsg('Please select a startup venture for the meeting request.');
+      return;
+    }
 
     const start = new Date(scheduledStart);
     const end = new Date(scheduledEnd);
@@ -79,6 +87,22 @@ export const MeetingRequestModal = ({ startupId, investorId, onClose, onSuccess 
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
+          )}
+
+          {shortlistedStartups.length > 0 && !initialStartupId && (
+            <Select
+              label="Select Startup Venture"
+              value={startupId}
+              onChange={(e) => setStartupId(e.target.value)}
+              options={shortlistedStartups.map((s) => {
+                const st = s.startup || s;
+                return {
+                  value: st._id,
+                  label: `${st.companyName || st.startupName || 'Venture Startup'} (${st.stage || 'Seed'})`,
+                };
+              })}
+              required
+            />
           )}
 
           <Input

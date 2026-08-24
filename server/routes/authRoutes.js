@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, logoutUser, getMe } = require('../controllers/authController');
+const { registerUser, loginUser, logoutUser, getMe, googleAuth, googleCallback } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 const { authRateLimiter } = require('../middleware/rateLimitMiddleware');
@@ -8,6 +8,8 @@ const { authRateLimiter } = require('../middleware/rateLimitMiddleware');
 // Public Authentication Endpoints (Subject to Rate Limiting)
 router.post('/register', authRateLimiter, registerUser);
 router.post('/login', authRateLimiter, loginUser);
+router.post('/google', authRateLimiter, googleAuth);
+router.get('/google/callback', googleCallback);
 router.post('/logout', logoutUser);
 
 // Authenticated User Identity Endpoint (Session Restoration - Unthrottled)

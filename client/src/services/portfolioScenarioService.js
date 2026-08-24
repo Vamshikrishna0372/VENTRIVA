@@ -9,3 +9,8 @@ export const getSavedScenarios = async () => {
   const response = await api.get('/portfolio-scenarios');
   return response.data;
 };
+
+export const deleteScenario = async (id) => {
+  const response = await api.delete(`/portfolio-scenarios/${id}`);
+  return response.data;
+};

@@ -15,7 +15,12 @@ export const MessagePanel = ({ conversationId, currentUserId, onBackMobile }) =>
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId) {
+      setIsLoading(false);
+      setConversation(null);
+      setMessages([]);
+      return;
+    }
     fetchThread();
     const interval = setInterval(fetchThread, 5000); // 5s refresh
     return () => clearInterval(interval);

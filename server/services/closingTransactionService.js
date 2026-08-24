@@ -76,12 +76,10 @@ class ClosingTransactionService {
       investor: transaction.investor,
       investment: investment._id,
       eventType: 'Initial Investment',
-      eventDate: transaction.actualClosingDate,
-      sharesAcquired: transaction.sharesIssued,
-      pricePerShare: transaction.sharePrice,
-      totalAmount: transaction.finalInvestmentAmount,
-      resultingOwnershipPercentage: transaction.ownershipPercentage,
-      notes: `Ownership event created from transaction closing ${transaction._id}`,
+      effectiveDate: transaction.actualClosingDate || new Date(),
+      newOwnership: transaction.ownershipPercentage || 0,
+      reason: `Ownership event created from transaction closing ${transaction._id}`,
+      createdBy: actorId,
     });
 
     // 3. Create Cap Table Snapshot & Update Active Shareholdings

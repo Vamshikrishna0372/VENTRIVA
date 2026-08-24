@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import DealHeader from '../../components/deals/DealHeader';
 import TermSheetCard from '../../components/deals/TermSheetCard';
 import TermSheetModal from '../../components/deals/TermSheetModal';
+import AddMilestoneModal from '../../components/deals/AddMilestoneModal';
 import DealMilestoneList from '../../components/deals/DealMilestoneList';
 import DealActivityTimeline from '../../components/deals/DealActivityTimeline';
 
@@ -22,6 +23,7 @@ export const FounderDealDetail = () => {
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isTermSheetModalOpen, setIsTermSheetModalOpen] = useState(false);
+  const [isAddMilestoneModalOpen, setIsAddMilestoneModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -95,11 +97,17 @@ export const FounderDealDetail = () => {
   };
 
   const handleCreateMilestone = async (milestoneData) => {
+    setIsSubmitting(true);
     try {
       const res = await createMilestone(id, milestoneData);
-      if (res?.success) fetchDealDetails();
+      if (res?.success) {
+        setIsAddMilestoneModalOpen(false);
+        fetchDealDetails();
+      }
     } catch (err) {
       console.error('Error creating milestone:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -132,11 +140,20 @@ export const FounderDealDetail = () => {
     }
   };
 
-  if (isLoading || !deal) {
+  if (isLoading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
         <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
         <p className="text-xs text-slate-400 font-mono">Opening Deal Room Workspace...</p>
+      </div>
+    );
+  }
+
+  if (!deal) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
+        <p className="text-sm font-semibold text-slate-300">Deal Record Unavailable</p>
+        <p className="text-xs text-slate-400">The requested deal room record does not exist or is no longer accessible.</p>
       </div>
     );
   }
@@ -178,6 +195,7 @@ export const FounderDealDetail = () => {
             onCreate={handleCreateMilestone}
             onToggle={handleToggleMilestone}
             onDelete={handleDeleteMilestone}
+            onOpenAddModal={() => setIsAddMilestoneModalOpen(true)}
           />
         </div>
 
@@ -191,6 +209,13 @@ export const FounderDealDetail = () => {
         isOpen={isTermSheetModalOpen}
         onClose={() => setIsTermSheetModalOpen(false)}
         onSubmit={handleProposeTermSheet}
+        isSubmitting={isSubmitting}
+      />
+
+      <AddMilestoneModal
+        isOpen={isAddMilestoneModalOpen}
+        onClose={() => setIsAddMilestoneModalOpen(false)}
+        onSubmit={handleCreateMilestone}
         isSubmitting={isSubmitting}
       />
     </div>
