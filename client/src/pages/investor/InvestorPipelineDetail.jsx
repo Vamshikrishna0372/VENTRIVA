@@ -113,15 +113,78 @@ export const InvestorPipelineDetail = () => {
     }
   };
 
-  const handleAddTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags((prev) => [...prev, newTag.trim()]);
-      setNewTag('');
+  const [isAddingTag, setIsAddingTag] = useState(false);
+
+  const handleAddTag = async (e) => {
+    if (e) e.preventDefault();
+    const trimmed = newTag.trim();
+    if (!trimmed) return;
+    if (tags.includes(trimmed)) {
+      setFeedback({ type: 'error', message: 'Tag already exists.' });
+      return;
+    }
+
+    const updatedTags = [...tags, trimmed];
+    setTags(updatedTags);
+    setNewTag('');
+    setIsAddingTag(true);
+    setFeedback(null);
+
+    try {
+      const payload = {
+        startupId,
+        stage,
+        priority,
+        status,
+        notes,
+        nextFollowUpDate: nextFollowUpDate || null,
+        lastContactDate: lastContactDate || null,
+        expectedInvestment: Number(expectedInvestment) || 0,
+        investmentCurrency,
+        internalRating: internalRating ? Number(internalRating) : null,
+        tags: updatedTags,
+      };
+
+      const res = await savePipelineEntry(payload);
+      if (res?.success) {
+        setFeedback({ type: 'success', message: `Tag "${trimmed}" added successfully!` });
+      }
+    } catch (err) {
+      console.error('Error adding tag:', err);
+      setFeedback({ type: 'error', message: err?.response?.data?.message || 'Failed to save tag' });
+    } finally {
+      setIsAddingTag(false);
     }
   };
 
-  const handleRemoveTag = (tagToRemove) => {
-    setTags((prev) => prev.filter((t) => t !== tagToRemove));
+  const handleRemoveTag = async (tagToRemove) => {
+    const updatedTags = tags.filter((t) => t !== tagToRemove);
+    setTags(updatedTags);
+    setFeedback(null);
+
+    try {
+      const payload = {
+        startupId,
+        stage,
+        priority,
+        status,
+        notes,
+        nextFollowUpDate: nextFollowUpDate || null,
+        lastContactDate: lastContactDate || null,
+        expectedInvestment: Number(expectedInvestment) || 0,
+        investmentCurrency,
+        internalRating: internalRating ? Number(internalRating) : null,
+        tags: updatedTags,
+      };
+
+      const res = await savePipelineEntry(payload);
+      if (res?.success) {
+        setFeedback({ type: 'success', message: `Tag "${tagToRemove}" removed.` });
+      }
+    } catch (err) {
+      console.error('Error removing tag:', err);
+      setFeedback({ type: 'error', message: err?.response?.data?.message || 'Failed to remove tag' });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -350,9 +413,15 @@ export const InvestorPipelineDetail = () => {
                   placeholder="Add tag (e.g. Priority Deal)"
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTag(e);
+                    }
+                  }}
                   className="flex-1 bg-slate-950 text-slate-100 text-xs rounded-xl px-3 py-2 border border-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
-                <Button size="sm" icon={Plus} onClick={handleAddTag}>
+                <Button type="button" size="sm" icon={Plus} isLoading={isAddingTag} onClick={handleAddTag}>
                   Add
                 </Button>
               </div>
