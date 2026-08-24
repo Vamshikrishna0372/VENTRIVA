@@ -260,19 +260,48 @@ export const FounderStartup = () => {
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold text-slate-100">
               {startup ? startup.startupName : 'Create Venture Profile'}
             </h1>
             {startup && (
-              <Badge variant="emerald">
-                {startup.profileCompletion}% Complete
-              </Badge>
+              <>
+                <Badge variant="emerald">
+                  {startup.profileCompletion}% Complete
+                </Badge>
+                <Badge
+                  variant={
+                    startup.isVerified || startup.verificationStatus === 'Verified'
+                      ? 'emerald'
+                      : startup.verificationStatus === 'Pending Review'
+                      ? 'amber'
+                      : startup.verificationStatus === 'Rejected'
+                      ? 'rose'
+                      : 'slate'
+                  }
+                >
+                  {startup.isVerified || startup.verificationStatus === 'Verified'
+                    ? 'Verified Venture'
+                    : startup.verificationStatus === 'Pending Review'
+                    ? 'Pending Verification Audit'
+                    : startup.verificationStatus === 'Rejected'
+                    ? 'Verification Rejected'
+                    : 'Unverified Profile'}
+                </Badge>
+              </>
             )}
           </div>
           <p className="text-sm text-slate-400">
             Configure venture attributes, metrics, fundraising requirements, and team roster.
           </p>
+          {startup?.verificationStatus === 'Rejected' && startup?.verificationReason && (
+            <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 space-y-1">
+              <p className="font-bold flex items-center gap-1.5 text-rose-400">
+                <AlertCircle className="w-4 h-4" /> Rejection Remarks from Platform Admin:
+              </p>
+              <p className="pl-5 text-slate-300">{startup.verificationReason}</p>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3">

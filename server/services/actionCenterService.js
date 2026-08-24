@@ -156,7 +156,7 @@ const getRoleActions = async (user) => {
     }
   } else if (user.role === 'admin') {
     // 1. Startups Awaiting Verification
-    const pendingVerifications = await Startup.find({ verificationStatus: 'Pending', isDeleted: false }).lean();
+    const pendingVerifications = await Startup.find({ isDeleted: false, isVerified: false, verificationStatus: { $ne: 'Rejected' } }).lean();
     if (pendingVerifications.length > 0) {
       actions.push({
         id: 'action-admin-verifications',

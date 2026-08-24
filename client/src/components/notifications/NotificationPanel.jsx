@@ -170,7 +170,7 @@ export const NotificationPanel = () => {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden space-y-2 animate-fade-in">
+          <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden space-y-2 animate-fade-in">
             <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-100 text-xs">Notifications</span>

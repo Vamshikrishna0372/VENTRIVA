@@ -5,6 +5,7 @@ const Evaluation = require('../models/Evaluation');
 const PipelineEntry = require('../models/PipelineEntry');
 const ModerationFlag = require('../models/ModerationFlag');
 const AdminAuditLog = require('../models/AdminAuditLog');
+const Notification = require('../models/Notification');
 const { calculateProfileCompletion } = require('../services/profileCompletionService');
 
 // Helper to record administrative audit log
@@ -32,7 +33,12 @@ const logAdminAction = async (adminId, action, targetType, targetId, description
  */
 const getAdminDashboardMetrics = async (req, res, next) => {
   try {
-    const activeFounders = await User.find({ role: 'founder', isActive: { $ne: false } }).select('_id').lean();
+    const activeFounders = await User.find({
+      role: { $in: ['founder', 'Founder', 'FOUNDER'] },
+      isActive: { $ne: false },
+    })
+      .select('_id')
+      .lean();
     const activeFounderIds = activeFounders.map((u) => u._id);
 
     const [
@@ -53,15 +59,23 @@ const getAdminDashboardMetrics = async (req, res, next) => {
       recentAuditLogs,
     ] = await Promise.all([
       User.countDocuments(),
-      User.countDocuments({ role: 'founder' }),
-      User.countDocuments({ role: 'investor' }),
+      User.countDocuments({ role: { $in: ['founder', 'Founder', 'FOUNDER'] } }),
+      User.countDocuments({ role: { $in: ['investor', 'Investor', 'INVESTOR'] } }),
       User.countDocuments({ isActive: true }),
       User.countDocuments({ isActive: false }),
       Startup.countDocuments({ isDeleted: false, founder: { $in: activeFounderIds } }),
       Startup.countDocuments({ isDeleted: false, isPublished: true, founder: { $in: activeFounderIds } }),
       Startup.countDocuments({ isDeleted: false, isPublished: false, founder: { $in: activeFounderIds } }),
       Startup.countDocuments({ isDeleted: false, isVerified: true, founder: { $in: activeFounderIds } }),
-      Startup.countDocuments({ isDeleted: false, isVerified: false, isPublished: true, founder: { $in: activeFounderIds } }),
+      Startup.countDocuments({
+        isDeleted: false,
+        isVerified: false,
+        $or: [
+          { verificationStatus: 'Pending Review' },
+          { verificationStatus: 'Pending' },
+          { isPublished: true, verificationStatus: { $ne: 'Rejected' } },
+        ],
+      }),
       Evaluation.countDocuments(),
       PipelineEntry.countDocuments({ status: 'Active' }),
       PipelineEntry.aggregate([{ $match: { status: 'Active' } }, { $group: { _id: null, totalVal: { $sum: '$expectedInvestment' } } }]),
@@ -479,6 +493,22 @@ const updateStartupVerification = async (req, res, next) => {
       { status: verificationStatus, reason: reason || '' },
       req
     );
+
+    // Notify founder of verification decision
+    try {
+      if (startup.founder) {
+        await Notification.create({
+          user: startup.founder,
+          type: 'System',
+          title: `Venture Profile ${verificationStatus}`,
+          message: `Your venture profile "${startup.startupName}" has been marked as ${verificationStatus}.${reason ? ' Remarks: ' + reason.trim() : ''}`,
+          relatedEntityId: startup._id,
+          relatedEntityType: 'Startup',
+        });
+      }
+    } catch (notifErr) {
+      console.error('Failed to create verification notification:', notifErr);
+    }
 
     res.status(200).json({
       success: true,
