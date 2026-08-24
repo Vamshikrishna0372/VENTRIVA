@@ -84,6 +84,7 @@ export const FounderMessages = () => {
             conversationId={selectedId}
             currentUserId={user?._id}
             onBackMobile={() => setShowMobilePanel(false)}
+            onMessageSent={fetchConversations}
           />
         </div>
       </div>

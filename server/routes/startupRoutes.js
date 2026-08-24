@@ -31,12 +31,12 @@ router.use(protect);
 router.get('/discover', authorize('investor'), discoverStartups);
 router.get('/discover/:id', authorize('investor'), getStartupDetailForInvestor);
 
-// Founder Startup CRUD Routes (guarded with authorize('founder'))
+// Founder Startup CRUD Routes (guarded with authorize('founder', 'admin'))
 router.post('/', authorize('founder'), createStartup);
-router.get('/', authorize('founder'), getStartups);
-router.get('/my', authorize('founder'), getMyStartup);
-router.get('/my/readiness', authorize('founder'), getMyStartupReadiness);
-router.get('/my/:id', authorize('founder'), getMyStartupById);
+router.get('/', authorize('founder', 'admin'), getStartups);
+router.get('/my', authorize('founder', 'admin'), getMyStartup);
+router.get('/my/readiness', authorize('founder', 'admin'), getMyStartupReadiness);
+router.get('/my/:id', authorize('founder', 'admin'), getMyStartupById);
 router.put('/my/:id', authorize('founder'), updateMyStartup);
 router.delete('/my/:id', authorize('founder'), deleteMyStartup);
 

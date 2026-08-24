@@ -6,7 +6,7 @@ import { Badge } from '../common/Badge';
 import { getConversationById, markConversationRead } from '../../services/conversationService';
 import { getMessages, sendMessage } from '../../services/messageService';
 
-export const MessagePanel = ({ conversationId, currentUserId, onBackMobile }) => {
+export const MessagePanel = ({ conversationId, currentUserId, onBackMobile, onMessageSent }) => {
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -21,6 +21,9 @@ export const MessagePanel = ({ conversationId, currentUserId, onBackMobile }) =>
       setMessages([]);
       return;
     }
+    setIsLoading(true);
+    setConversation(null);
+    setMessages([]);
     fetchThread();
     const interval = setInterval(fetchThread, 5000); // 5s refresh
     return () => clearInterval(interval);
@@ -69,6 +72,9 @@ export const MessagePanel = ({ conversationId, currentUserId, onBackMobile }) =>
       const res = await sendMessage(conversationId, currentText);
       if (res?.success && res?.data) {
         setMessages((prev) => [...prev, res.data]);
+        if (onMessageSent) {
+          onMessageSent();
+        }
       }
     } catch (err) {
       alert('Failed to send message');

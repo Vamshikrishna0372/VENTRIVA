@@ -56,8 +56,10 @@ const getConversationById = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Conversation thread not found' });
     }
 
-    const isFounder = conversation.founder._id.toString() === req.user._id.toString();
-    const isInvestor = conversation.investor._id.toString() === req.user._id.toString();
+    const founderId = conversation.founder?._id ? conversation.founder._id.toString() : conversation.founder?.toString();
+    const investorId = conversation.investor?._id ? conversation.investor._id.toString() : conversation.investor?.toString();
+    const isFounder = founderId === req.user._id.toString();
+    const isInvestor = investorId === req.user._id.toString();
     const isAdmin = req.user.role === 'admin';
 
     if (!isFounder && !isInvestor && !isAdmin) {
