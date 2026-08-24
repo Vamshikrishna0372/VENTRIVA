@@ -15,10 +15,36 @@ export class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('Ventriva UI Error Boundary caught an exception:', error, errorInfo);
+    const errorMsg = error?.message || error?.toString() || '';
+    const isChunkError =
+      errorMsg.includes('fetch dynamically imported module') ||
+      errorMsg.includes('Loading chunk') ||
+      errorMsg.includes('ChunkLoadError') ||
+      errorMsg.includes('Unexpected token');
+
+    if (isChunkError) {
+      const pageHasBeenRefreshed = sessionStorage.getItem('chunk_retry_refreshed') === 'true';
+      if (!pageHasBeenRefreshed) {
+        sessionStorage.setItem('chunk_retry_refreshed', 'true');
+        window.location.reload();
+      }
+    }
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null });
+    const errorMsg = this.state.error?.message || this.state.error?.toString() || '';
+    const isChunkError =
+      errorMsg.includes('fetch dynamically imported module') ||
+      errorMsg.includes('Loading chunk') ||
+      errorMsg.includes('ChunkLoadError') ||
+      errorMsg.includes('Unexpected token');
+
+    if (isChunkError) {
+      sessionStorage.removeItem('chunk_retry_refreshed');
+      window.location.reload();
+    } else {
+      this.setState({ hasError: false, error: null });
+    }
   };
 
   render() {

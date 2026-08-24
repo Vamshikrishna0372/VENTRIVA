@@ -15,7 +15,11 @@ const runDocumentCleanupJob = async () => {
 
     const physicalFiles = fs.readdirSync(uploadDir);
     const activeDocs = await Document.find({}).select('storagePath').lean();
-    const activePaths = new Set(activeDocs.map((d) => path.basename(d.storagePath)));
+    const activePaths = new Set(
+      activeDocs
+        .filter((d) => d && typeof d.storagePath === 'string')
+        .map((d) => path.basename(d.storagePath))
+    );
 
     const orphanedFiles = [];
     for (const file of physicalFiles) {

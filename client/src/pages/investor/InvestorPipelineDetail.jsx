@@ -231,7 +231,14 @@ export const InvestorPipelineDetail = () => {
         }`}>
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 shrink-0" />
-            <span>Follow-up {followUp.label}: {new Date(nextFollowUpDate).toLocaleDateString()}</span>
+            <span>
+              Follow-up {followUp.label}:{' '}
+              {new Date(nextFollowUpDate.includes('T') ? nextFollowUpDate : `${nextFollowUpDate}T00:00:00`).toLocaleDateString('en-US', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })}
+            </span>
           </div>
           <Badge variant={followUp.color}>{followUp.label}</Badge>
         </div>
