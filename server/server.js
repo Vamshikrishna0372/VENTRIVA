@@ -12,7 +12,14 @@ let server;
 const startServer = async () => {
   try {
     // 1. Connect MongoDB
-    await connectDB();
+    try {
+      await connectDB();
+    } catch (dbErr) {
+      if (env.NODE_ENV === 'production') {
+        throw dbErr;
+      }
+      logger.warn('[Database Warning] Initial MongoDB connection failed. Server active in degraded mode; DB operations will retry automatically.', { error: dbErr.message });
+    }
 
     // 2. Start Background Job Scheduler
     startJobRunner();

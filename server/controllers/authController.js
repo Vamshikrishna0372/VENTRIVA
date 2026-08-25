@@ -4,18 +4,26 @@ const mongoose = require('mongoose');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 
+const { connectDB } = require('../config/database');
+
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Helper to check DB connection readiness
-const checkDatabaseConnected = (res) => {
+const checkDatabaseConnected = async (res) => {
   if (mongoose.connection.readyState !== 1) {
-    res.status(503).json({
-      success: false,
-      message: 'Database connection unavailable. Please ensure MONGODB_URI is configured.',
-    });
-    return false;
+    try {
+      await connectDB();
+    } catch (err) {
+      if (res && typeof res.status === 'function') {
+        res.status(503).json({
+          success: false,
+          message: 'Database connection unavailable. Please ensure MONGODB_URI is configured.',
+        });
+      }
+      return false;
+    }
   }
-  return true;
+  return mongoose.connection.readyState === 1;
 };
 
 /**
@@ -25,7 +33,7 @@ const checkDatabaseConnected = (res) => {
  */
 const registerUser = async (req, res, next) => {
   try {
-    if (!checkDatabaseConnected(res)) return;
+    if (!(await checkDatabaseConnected(res))) return;
 
     const { name, email, password, role } = req.body;
 
@@ -95,7 +103,7 @@ const registerUser = async (req, res, next) => {
  */
 const loginUser = async (req, res, next) => {
   try {
-    if (!checkDatabaseConnected(res)) return;
+    if (!(await checkDatabaseConnected(res))) return;
 
     const { email, password } = req.body;
 
@@ -191,7 +199,7 @@ const getMe = async (req, res) => {
  */
 const googleAuth = async (req, res, next) => {
   try {
-    if (!checkDatabaseConnected(res)) return;
+    if (!(await checkDatabaseConnected(res))) return;
 
     const { credential, role } = req.body;
     if (!credential) {

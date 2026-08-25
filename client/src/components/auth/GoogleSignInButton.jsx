@@ -75,12 +75,20 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
     const initGsi = () => {
       if (!window.google?.accounts?.id || !clientId) return;
       try {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: (res) => callbackRef.current(res),
-          auto_select: false,
-        });
-        window.__gsi_initialized_id = clientId;
+        if (window.__gsi_initialized_id !== clientId) {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: (res) => {
+              if (typeof window.__gsi_active_callback === 'function') {
+                window.__gsi_active_callback(res);
+              }
+            },
+            auto_select: false,
+          });
+          window.__gsi_initialized_id = clientId;
+        }
+
+        window.__gsi_active_callback = (res) => callbackRef.current(res);
 
         if (buttonRef.current) {
           buttonRef.current.innerHTML = '';
