@@ -208,19 +208,16 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
 
         if (buttonRef.current) {
           buttonRef.current.innerHTML = '';
+          const parentWidth = buttonRef.current.parentElement?.clientWidth || window.innerWidth;
+          const responsiveWidth = Math.min(Math.max(parentWidth - 32, 220), 380);
+
           window.google.accounts.id.renderButton(buttonRef.current, {
             theme: 'outline',
             size: 'large',
-            width: '380',
+            width: String(responsiveWidth),
             text: 'continue_with',
             shape: 'rectangular',
           });
-
-          setTimeout(() => {
-            if (buttonRef.current && buttonRef.current.children.length === 0) {
-              setShowFallbackButton(true);
-            }
-          }, 1200);
         }
       } catch (gErr) {
         console.warn('Google Identity Services (GSI) notice:', gErr.message || gErr);
