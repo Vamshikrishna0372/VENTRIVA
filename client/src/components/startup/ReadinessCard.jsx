@@ -53,30 +53,30 @@ export const ReadinessCard = () => {
   };
 
   return (
-    <Card className="bg-slate-900 border-slate-800 space-y-5">
+    <Card className="bg-slate-900 border-slate-800 space-y-5 min-w-0 max-w-full">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 rounded-xl border border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0">
-            <Award className="w-6 h-6" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 rounded-xl border border-slate-800 min-w-0 max-w-full">
+        <div className="flex items-center gap-3 min-w-0 max-w-full">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0">
+            <Award className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-slate-100">Investment Readiness Score</h2>
+          <div className="min-w-0 max-w-full">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-slate-100">Investment Readiness Score</h2>
               <Badge variant={getScoreVariant(overallScore)}>{overallScore} / 100</Badge>
             </div>
             <p className="text-xs text-slate-400">Institutional venture capital diligence readiness score based on real platform data.</p>
           </div>
         </div>
 
-        <Button variant="ghost" size="sm" icon={RefreshCw} onClick={fetchReadiness}>
+        <Button variant="ghost" size="sm" icon={RefreshCw} onClick={fetchReadiness} className="self-start sm:self-auto shrink-0">
           Recalculate
         </Button>
       </div>
 
-      <CardBody className="space-y-6 pt-0">
+      <CardBody className="space-y-6 pt-0 min-w-0 max-w-full">
         {/* Progress Bar */}
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 min-w-0 max-w-full">
           <div className="flex justify-between text-xs font-mono">
             <span className="text-slate-400">Readiness Completion</span>
             <span className="text-brand-400 font-bold">{overallScore}%</span>
@@ -92,13 +92,13 @@ export const ReadinessCard = () => {
         </div>
 
         {/* Category Breakdown Grid */}
-        <div>
+        <div className="min-w-0 max-w-full">
           <h4 className="text-xs font-mono uppercase text-slate-400 mb-3">Readiness Category Breakdown</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 min-w-0 max-w-full">
             {Object.entries(categoryScores || {}).map(([key, cat]) => (
-              <div key={key} className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-300 truncate">{cat.name}</span>
-                <span className={`font-mono font-bold ${cat.score === cat.maxScore ? 'text-emerald-400' : 'text-amber-400'}`}>
+              <div key={key} className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs min-w-0 max-w-full">
+                <span className="text-slate-300 truncate mr-2">{cat.name}</span>
+                <span className={`font-mono font-bold shrink-0 ${cat.score === cat.maxScore ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {cat.score}/{cat.maxScore}
                 </span>
               </div>

@@ -96,7 +96,7 @@ export const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-lg text-slate-100 tracking-tight">VENTRIVA</span>
-                <Badge variant="brand" size="xs">Platform Active</Badge>
+                <Badge variant="brand" size="xs" className="hidden sm:inline-flex">Platform Active</Badge>
               </div>
               <p className="text-[10px] text-slate-400 -mt-1 hidden sm:block">Private Discovery Platform</p>
             </div>

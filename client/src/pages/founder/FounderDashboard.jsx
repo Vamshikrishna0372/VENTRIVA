@@ -61,22 +61,22 @@ export const FounderDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
+      <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-4 min-w-0 max-w-full">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-slate-100">Welcome back, {user?.name}!</h1>
+          <div className="min-w-0 max-w-full">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-100 truncate">Welcome back, {user?.name}!</h1>
               <Badge variant="emerald">FOUNDER</Badge>
             </div>
-            <p className="text-sm text-slate-400">Manage your venture profile, respond to investor interest, and host scheduled pitch meetings.</p>
+            <p className="text-xs sm:text-sm text-slate-400">Manage your venture profile, respond to investor interest, and host scheduled pitch meetings.</p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Link to="/founder/startup">
-              <Button variant="outline" size="sm" icon={Building2}>Startup Profile</Button>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto shrink-0">
+            <Link to="/founder/startup" className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" icon={Building2} className="w-full justify-center">Startup Profile</Button>
             </Link>
-            <Link to="/founder/documents">
-              <Button variant="primary" size="sm" icon={FileText}>Virtual Data Room</Button>
+            <Link to="/founder/documents" className="w-full sm:w-auto">
+              <Button variant="primary" size="sm" icon={FileText} className="w-full justify-center">Virtual Data Room</Button>
             </Link>
           </div>
         </div>
