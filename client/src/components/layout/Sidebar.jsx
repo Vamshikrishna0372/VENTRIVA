@@ -105,6 +105,18 @@ export const Sidebar = ({ role = 'investor', isOpen: controlledIsOpen, onClose }
   const location = useLocation();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+
+  useEffect(() => {
+    if (isOpen && window.innerWidth < 1024) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   const handleClose = () => {
     if (onClose) {
       onClose();
