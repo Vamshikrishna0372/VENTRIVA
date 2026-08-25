@@ -16,7 +16,6 @@ export function lazyWithRetry(componentImport) {
       if (!pageHasBeenRefreshed) {
         sessionStorage.setItem('chunk_retry_refreshed', 'true');
         window.location.reload();
-        return new Promise(() => {}); // Hold rendering while reloading
       }
       throw error;
     }

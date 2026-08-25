@@ -71,17 +71,34 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
     callbackRef.current = handleCredentialResponse;
   });
 
-  // Handle URL hash token callback from redirect OAuth flow if hash present
+  // Handle URL hash / search token callback from redirect OAuth flow if present
   useEffect(() => {
-    if (window.location.hash.includes('id_token=')) {
-      const hash = window.location.hash.replace(/^#/, '');
-      const params = new URLSearchParams(hash);
-      const idToken = params.get('id_token');
-      if (idToken) {
-        window.history.replaceState(null, '', window.location.pathname);
-        handleCredentialResponse({ credential: idToken });
+    const handleUrlCallback = async () => {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+
+      let idToken = null;
+      if (hash.includes('id_token=')) {
+        const params = new URLSearchParams(hash.replace(/^#/, ''));
+        idToken = params.get('id_token');
+      } else if (search.includes('id_token=')) {
+        const params = new URLSearchParams(search);
+        idToken = params.get('id_token');
       }
-    }
+
+      if (idToken) {
+        // Clean URL hash immediately to avoid double execution on component re-renders
+        window.history.replaceState(null, '', window.location.pathname);
+        try {
+          await handleCredentialResponse({ credential: idToken });
+        } catch (err) {
+          setErrorMsg(err?.message || 'Google Sign-In could not be completed. Please try again.');
+          setIsLoading(false);
+        }
+      }
+    };
+
+    handleUrlCallback();
   }, []);
 
   const triggerOAuthPopup = () => {
