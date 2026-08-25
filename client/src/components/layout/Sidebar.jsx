@@ -107,13 +107,24 @@ export const Sidebar = ({ role = 'investor', isOpen: controlledIsOpen, onClose }
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
 
   useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        document.body.style.overflow = '';
+      } else if (isOpen) {
+        document.body.style.overflow = 'hidden';
+      }
+    };
+
     if (isOpen && window.innerWidth < 1024) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
+
+    window.addEventListener('resize', handleResize);
     return () => {
       document.body.style.overflow = '';
+      window.removeEventListener('resize', handleResize);
     };
   }, [isOpen]);
 
