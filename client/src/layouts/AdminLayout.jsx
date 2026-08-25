@@ -42,16 +42,19 @@ export const AdminLayout = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
       {/* Mobile Top Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800">
-        <Link to="/admin/dashboard" className="flex items-center gap-2">
-          <Shield className="w-6 h-6 text-brand-500" />
-          <span className="font-extrabold text-slate-100 text-lg tracking-wider">VENTRIVA <span className="text-xs text-brand-400 font-mono font-normal">ADMIN</span></span>
-        </Link>
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 text-slate-400 hover:text-slate-100"
-        >
-          {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            aria-label="Toggle admin navigation menu"
+          >
+            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+          <Link to="/admin/dashboard" className="flex items-center gap-2">
+            <Shield className="w-6 h-6 text-brand-500" />
+            <span className="font-extrabold text-slate-100 text-lg tracking-wider">VENTRIVA <span className="text-xs text-brand-400 font-mono font-normal">ADMIN</span></span>
+          </Link>
+        </div>
       </div>
 
       {/* Sidebar Navigation */}

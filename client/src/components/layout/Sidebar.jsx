@@ -101,26 +101,25 @@ const roleMenus = {
   ],
 };
 
-export const Sidebar = ({ role = 'investor' }) => {
+export const Sidebar = ({ role = 'investor', isOpen: controlledIsOpen, onClose }) => {
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      setInternalIsOpen(false);
+    }
+  };
   const items = roleMenus[role] || roleMenus.investor;
 
   return (
     <>
-      {/* Mobile Toggle Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed bottom-5 right-5 z-50 p-3 bg-brand-500 text-white rounded-full shadow-lg shadow-brand-500/40 focus:outline-none"
-        aria-label="Toggle navigation"
-      >
-        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </button>
-
       {/* Backdrop overlay for mobile */}
       {isOpen && (
         <div
-          onClick={() => setIsOpen(false)}
+          onClick={handleClose}
           className="lg:hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40"
         />
       )}
@@ -158,7 +157,7 @@ export const Sidebar = ({ role = 'investor' }) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleClose}
                   className={`
                     flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-150 group
                     ${

@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Sparkles, LogOut, User, Settings, ShieldCheck, ChevronDown, Bell, LayoutDashboard, Sun, Moon } from 'lucide-react';
+import { Sparkles, LogOut, User, Settings, ShieldCheck, ChevronDown, Bell, LayoutDashboard, Sun, Moon, Menu, X } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationPanel from '../notifications/NotificationPanel';
 
-export const Navbar = () => {
+export const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
@@ -76,19 +76,32 @@ export const Navbar = () => {
   return (
     <header className="sticky top-0 z-40 w-full bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80">
       <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand Logo */}
-        <Link to={isAuthenticated && user ? getDashboardLink() : "/"} className="flex items-center gap-2.5 group shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform duration-200">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-lg text-slate-100 tracking-tight">VENTRIVA</span>
-              <Badge variant="brand" size="xs">Platform Active</Badge>
+        {/* Brand Logo & Mobile Sidebar Toggle */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {isAppDashboard && onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="lg:hidden p-2 -ml-1 text-slate-300 hover:text-slate-100 hover:bg-slate-900 rounded-xl border border-transparent hover:border-slate-800 transition-all focus:outline-none cursor-pointer"
+              aria-label="Toggle navigation menu"
+            >
+              {sidebarOpen ? <X className="w-5 h-5 text-slate-200" /> : <Menu className="w-5 h-5 text-slate-200" />}
+            </button>
+          )}
+
+          <Link to={isAuthenticated && user ? getDashboardLink() : "/"} className="flex items-center gap-2.5 group shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform duration-200">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <p className="text-[10px] text-slate-400 -mt-1 hidden sm:block">Private Discovery Platform</p>
-          </div>
-        </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-lg text-slate-100 tracking-tight">VENTRIVA</span>
+                <Badge variant="brand" size="xs">Platform Active</Badge>
+              </div>
+              <p className="text-[10px] text-slate-400 -mt-1 hidden sm:block">Private Discovery Platform</p>
+            </div>
+          </Link>
+        </div>
 
         {/* Center Navigation (Public Pages Only) */}
         {!isAppDashboard && (
