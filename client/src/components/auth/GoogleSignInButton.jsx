@@ -5,7 +5,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import RoleOnboardingModal from './RoleOnboardingModal';
 
 export const GoogleSignInButton = ({ role = null, onSuccess }) => {
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle, fetchCurrentUser } = useAuth();
   const navigate = useNavigate();
   const buttonRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,13 +77,41 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
       const hash = window.location.hash || '';
       const search = window.location.search || '';
 
+      if (!hash && !search) return;
+
+      const searchParams = new URLSearchParams(search);
+      const queryError = searchParams.get('error');
+      if (queryError) {
+        window.history.replaceState(null, '', window.location.pathname);
+        setErrorMsg(`Google sign-in could not be completed (${queryError}). Please try again.`);
+        return;
+      }
+
+      const directToken = searchParams.get('token');
+      const targetUrl = searchParams.get('target');
+      if (directToken) {
+        window.history.replaceState(null, '', window.location.pathname);
+        setIsLoading(true);
+        try {
+          localStorage.setItem('ventriva_token', directToken);
+          const userRes = await fetchCurrentUser();
+          setIsLoading(false);
+          if (targetUrl) {
+            navigate(targetUrl, { replace: true });
+          }
+        } catch (err) {
+          setErrorMsg('Session initialization failed. Please try signing in again.');
+          setIsLoading(false);
+        }
+        return;
+      }
+
       let idToken = null;
       if (hash.includes('id_token=')) {
         const params = new URLSearchParams(hash.replace(/^#/, ''));
         idToken = params.get('id_token');
       } else if (search.includes('id_token=')) {
-        const params = new URLSearchParams(search);
-        idToken = params.get('id_token');
+        idToken = searchParams.get('id_token');
       }
 
       if (idToken) {
