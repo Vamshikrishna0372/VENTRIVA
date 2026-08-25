@@ -91,6 +91,13 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
       redirectUri
     )}&response_type=id_token&scope=openid%20email%20profile&prompt=select_account&nonce=${Math.random().toString(36)}`;
 
+    // On mobile devices, perform full-screen navigation to ensure reliable callback without popup blocking or tab hanging
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+    if (isMobile) {
+      window.location.href = oauthUrl;
+      return;
+    }
+
     const width = 500;
     const height = 600;
     const left = window.screen.width / 2 - width / 2;
