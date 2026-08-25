@@ -170,6 +170,11 @@ export const AdminUsers = () => {
                 <tr key={user._id} className="hover:bg-slate-800/30 transition-colors">
                   <td className="p-4 font-semibold text-slate-100">
                     <div className="font-bold text-sm">{user.name}</div>
+                    {(user.professionalTitle || user.organization) && (
+                      <div className="text-[11px] text-brand-300 font-medium">
+                        {[user.professionalTitle, user.organization].filter(Boolean).join(' • ')}
+                      </div>
+                    )}
                     <div className="text-xs font-mono text-slate-400 font-normal">{user.email}</div>
                   </td>
                   <td className="p-4">

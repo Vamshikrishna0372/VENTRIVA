@@ -140,9 +140,9 @@ export const AdminUserDetail = () => {
       {/* Main Details Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
-          <CardHeader title="User Account Overview" />
+          <CardHeader title="User Account Overview & Profile" subtitle="Live synchronized user profile data from database" />
           <CardBody className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
                 <span className="text-[10px] font-mono text-slate-400 uppercase block">Full Name</span>
                 <span className="font-bold text-slate-100">{userData.name}</span>
@@ -152,6 +152,16 @@ export const AdminUserDetail = () => {
                 <span className="font-bold text-slate-100 text-xs font-mono">{userData.email}</span>
               </div>
               <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-mono text-slate-400 uppercase block">Professional Title</span>
+                <span className="font-bold text-brand-300">{userData.professionalTitle || 'Not specified'}</span>
+              </div>
+              {userData.organization && (
+                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Organization / Firm</span>
+                  <span className="font-bold text-slate-100">{userData.organization}</span>
+                </div>
+              )}
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
                 <span className="text-[10px] font-mono text-slate-400 uppercase block">User Role</span>
                 <span className="font-bold text-brand-300 capitalize">{userData.role}</span>
               </div>
@@ -159,6 +169,22 @@ export const AdminUserDetail = () => {
                 <span className="text-[10px] font-mono text-slate-400 uppercase block">Registered Date</span>
                 <span className="font-bold text-slate-100">{new Date(userData.createdAt).toLocaleDateString()}</span>
               </div>
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-mono text-slate-400 uppercase block">Location</span>
+                <span className="font-bold text-slate-100">{userData.location || 'Not specified'}</span>
+              </div>
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-mono text-slate-400 uppercase block">Phone Contact</span>
+                <span className="font-bold text-slate-100 font-mono text-xs">{userData.phone || 'Not specified'}</span>
+              </div>
+              {userData.linkedin && (
+                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase block">LinkedIn Profile</span>
+                  <a href={userData.linkedin} target="_blank" rel="noreferrer" className="text-xs text-brand-400 hover:underline truncate block">
+                    {userData.linkedin}
+                  </a>
+                </div>
+              )}
               <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
                 <span className="text-[10px] font-mono text-slate-400 uppercase block">Account Verification</span>
                 <span className="font-bold text-emerald-400">{userData.isVerified ? 'Verified' : 'Unverified'}</span>
@@ -168,6 +194,42 @@ export const AdminUserDetail = () => {
                 <span className="font-bold text-slate-100">{userData.isActive ? 'Active' : 'Suspended'}</span>
               </div>
             </div>
+
+            {userData.bio && (
+              <div className="pt-2">
+                <span className="text-[10px] font-mono text-slate-400 uppercase block mb-1">Executive Bio / Summary</span>
+                <p className="text-xs text-slate-300 bg-slate-950/80 p-3 rounded-xl border border-slate-800 leading-relaxed whitespace-pre-line">
+                  {userData.bio}
+                </p>
+              </div>
+            )}
+
+            {/* Investor Preferences if Investor Role */}
+            {userData.role === 'investor' && (
+              <div className="pt-3 border-t border-slate-800 space-y-3">
+                <h4 className="text-xs font-mono uppercase text-slate-400">Investment Thesis & Check Size Criteria</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase block">Target Check Size Range</span>
+                    <span className="font-bold text-emerald-400">
+                      ${userData.minimumInvestment ? userData.minimumInvestment.toLocaleString() : '0'} - ${userData.maximumInvestment ? userData.maximumInvestment.toLocaleString() : '0'} {userData.investmentCurrency || 'USD'}
+                    </span>
+                  </div>
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase block">Preferred Sectors</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {Array.isArray(userData.preferredSectors) && userData.preferredSectors.length > 0 ? (
+                        userData.preferredSectors.map((sec, i) => (
+                          <Badge key={i} variant="brand" size="xs">{sec}</Badge>
+                        ))
+                      ) : (
+                        <span className="text-slate-500 italic">No sectors selected</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardBody>
         </Card>
 
@@ -197,6 +259,7 @@ export const AdminUserDetail = () => {
             ) : userData.role === 'investor' ? (
               <div className="space-y-2 text-xs text-slate-300">
                 <p><strong>Investor Account:</strong> Active discovery & evaluation privileges.</p>
+                {userData.organization && <p><strong>Firm:</strong> {userData.organization}</p>}
               </div>
             ) : (
               <p className="text-xs text-rose-300 font-mono">Platform System Administrator</p>
