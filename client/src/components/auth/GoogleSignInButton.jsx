@@ -71,22 +71,64 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
     callbackRef.current = handleCredentialResponse;
   });
 
-  const handleFallbackClick = () => {
-    setErrorMsg('');
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            const reason = notification.getNotDisplayedReason() || notification.getSkippedReason() || 'Google Sign-In prompt unavailable';
-            setErrorMsg(`Google Sign-In Notice: ${reason}. Please ensure ${window.location.origin} is authorized in Google Cloud Console.`);
-          }
-        });
-      } catch (err) {
-        setErrorMsg(`Google OAuth origin restriction for ${window.location.origin}. Please authorize in Google Cloud Console.`);
+  // Handle URL hash token callback from redirect OAuth flow if hash present
+  useEffect(() => {
+    if (window.location.hash.includes('id_token=')) {
+      const hash = window.location.hash.replace(/^#/, '');
+      const params = new URLSearchParams(hash);
+      const idToken = params.get('id_token');
+      if (idToken) {
+        window.history.replaceState(null, '', window.location.pathname);
+        handleCredentialResponse({ credential: idToken });
       }
-    } else {
-      setErrorMsg('Google Identity Services script not loaded. Please check your network connection.');
     }
+  }, []);
+
+  const triggerOAuthPopup = () => {
+    setErrorMsg('');
+    const redirectUri = window.location.origin + '/login';
+    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&response_type=id_token&scope=openid%20email%20profile&prompt=select_account&nonce=${Math.random().toString(36)}`;
+
+    const width = 500;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
+    const popup = window.open(
+      oauthUrl,
+      'GoogleAuthPopup',
+      `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,status=yes`
+    );
+
+    if (!popup) {
+      window.location.href = oauthUrl;
+      return;
+    }
+
+    const checkPopupHash = setInterval(() => {
+      try {
+        if (!popup || popup.closed) {
+          clearInterval(checkPopupHash);
+          return;
+        }
+        if (popup.location.href.includes(window.location.origin)) {
+          const hash = popup.location.hash;
+          const params = new URLSearchParams(hash.replace(/^#/, ''));
+          const idToken = params.get('id_token');
+          popup.close();
+          clearInterval(checkPopupHash);
+          if (idToken) {
+            handleCredentialResponse({ credential: idToken });
+          } else {
+            setErrorMsg('Google authentication token missing from response.');
+          }
+        }
+      } catch (e) {
+        // Cross-origin restriction while popup is on accounts.google.com domain
+      }
+    }, 500);
   };
 
   useEffect(() => {
@@ -170,8 +212,8 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
           {showFallbackButton && (
             <button
               type="button"
-              onClick={handleFallbackClick}
-              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-semibold text-slate-200 flex items-center justify-center gap-2.5 transition-all shadow-sm"
+              onClick={triggerOAuthPopup}
+              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-xl text-xs font-semibold text-slate-200 flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -210,4 +252,5 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
 };
 
 export default GoogleSignInButton;
+
 
