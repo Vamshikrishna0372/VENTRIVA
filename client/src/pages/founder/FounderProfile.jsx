@@ -4,8 +4,10 @@ import { Card, CardHeader, CardBody } from '../../components/common/Card';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { getFounderProfile, updateFounderProfile } from '../../services/founderService';
+import { useAuth } from '../../context/AuthContext';
 
 export const FounderProfile = () => {
+  const { updateUser } = useAuth();
   const [initialData, setInitialData] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -88,6 +90,7 @@ export const FounderProfile = () => {
         };
         setInitialData(updated);
         setFormData(updated);
+        if (updateUser) updateUser(res.user);
         setFeedback({ type: 'success', message: 'Founder profile updated successfully!' });
       } else {
         setFeedback({ type: 'error', message: res?.message || 'Failed to update profile' });

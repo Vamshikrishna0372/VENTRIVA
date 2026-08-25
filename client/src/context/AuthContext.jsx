@@ -158,6 +158,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         fetchCurrentUser,
         restoreSession: fetchCurrentUser,
+        setUser,
+        updateUser: (updatedUser) => setUser(updatedUser),
       }}
     >
       {children}

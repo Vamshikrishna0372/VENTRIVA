@@ -7,8 +7,10 @@ import { Button } from '../../components/common/Button';
 
 import { SECTORS, STAGES, BUSINESS_MODELS, CURRENCIES } from '../../utils/constants';
 import { getInvestorProfile, updateInvestorProfile } from '../../services/investorService';
+import { useAuth } from '../../context/AuthContext';
 
 export const InvestorSettings = () => {
+  const { updateUser } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -84,6 +86,7 @@ export const InvestorSettings = () => {
     try {
       const res = await updateInvestorProfile(formData);
       if (res?.success) {
+        if (res.user && updateUser) updateUser(res.user);
         setFeedback({ type: 'success', message: 'Investment profile & mandate saved successfully!' });
       } else {
         setFeedback({ type: 'error', message: res?.message || 'Failed to update preferences' });
