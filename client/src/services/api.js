@@ -12,7 +12,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Send HttpOnly authentication cookies
-  timeout: 15000,
+  timeout: 30000,
 });
 
 // Request Interceptor: Attach JWT Token from localStorage if present

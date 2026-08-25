@@ -75,14 +75,13 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
     const initGsi = () => {
       if (!window.google?.accounts?.id || !clientId) return;
       try {
-        if (!window.__gsi_initialized_id) {
-          window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: (res) => callbackRef.current(res),
-            auto_select: false,
-          });
-          window.__gsi_initialized_id = clientId;
-        }
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (res) => callbackRef.current(res),
+          auto_select: false,
+        });
+        window.__gsi_initialized_id = clientId;
+
         if (buttonRef.current) {
           buttonRef.current.innerHTML = '';
           window.google.accounts.id.renderButton(buttonRef.current, {
