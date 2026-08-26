@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Startup = require('../models/Startup');
+const TeamMember = require('../models/TeamMember');
 const Evaluation = require('../models/Evaluation');
 const PipelineEntry = require('../models/PipelineEntry');
 const ModerationFlag = require('../models/ModerationFlag');
@@ -186,11 +187,13 @@ const getAdminUserById = async (req, res, next) => {
     }
 
     let founderStartup = null;
+    let teamMembers = [];
     if (user.role === 'founder') {
       founderStartup = await Startup.findOne({ founder: user._id, isDeleted: false }).lean();
       if (founderStartup) {
         const comp = calculateProfileCompletion(founderStartup);
         founderStartup.profileCompletion = comp.totalCompletionPercentage;
+        teamMembers = await TeamMember.find({ startup: founderStartup._id }).sort({ displayOrder: 1, createdAt: 1 }).lean();
       }
     }
 
@@ -198,6 +201,7 @@ const getAdminUserById = async (req, res, next) => {
       success: true,
       user,
       founderStartup,
+      teamMembers,
     });
   } catch (error) {
     next(error);
@@ -394,7 +398,7 @@ const getAdminStartups = async (req, res, next) => {
 
     const [startups, total] = await Promise.all([
       Startup.find(query)
-        .populate('founder', 'name email isVerified isActive')
+        .populate('founder', 'name email isVerified isActive professionalTitle organization phone location linkedin bio yearsOfExperience avatar')
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -435,16 +439,21 @@ const getAdminStartupById = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid Startup ObjectId format' });
     }
 
-    const startup = await Startup.findById(id).populate('founder', 'name email isVerified isActive').lean();
+    const startup = await Startup.findById(id)
+      .populate('founder', 'name email isVerified isActive professionalTitle organization phone location linkedin bio yearsOfExperience avatar')
+      .lean();
+
     if (!startup || startup.isDeleted) {
       return res.status(404).json({ success: false, message: 'Startup profile not found' });
     }
 
+    const teamMembers = await TeamMember.find({ startup: startup._id }).sort({ displayOrder: 1, createdAt: 1 }).lean();
     const comp = calculateProfileCompletion(startup);
 
     res.status(200).json({
       success: true,
       startup,
+      teamMembers,
       profileCompletion: comp,
     });
   } catch (error) {

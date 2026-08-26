@@ -183,6 +183,16 @@ export const FounderProfile = () => {
                 onChange={handleChange}
                 icon={MapPin}
               />
+              <Input
+                label="Years of Experience"
+                name="yearsOfExperience"
+                type="number"
+                min="0"
+                placeholder="5"
+                value={formData.yearsOfExperience}
+                onChange={handleChange}
+                icon={Briefcase}
+              />
             </div>
 
             <div className="space-y-1.5">

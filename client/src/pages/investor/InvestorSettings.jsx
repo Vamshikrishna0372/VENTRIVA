@@ -253,6 +253,32 @@ export const InvestorSettings = () => {
               </div>
             </div>
 
+            {/* Business Models */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Target Business Models
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {BUSINESS_MODELS.map((bm) => {
+                  const isChecked = (formData.preferredBusinessModels || []).includes(bm);
+                  return (
+                    <button
+                      type="button"
+                      key={bm}
+                      onClick={() => handleCheckboxToggle('preferredBusinessModels', bm)}
+                      className={`p-2.5 rounded-xl border text-xs font-semibold text-left transition-all ${
+                        isChecked
+                          ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {bm}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Check Size Range */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-800">
               <Input

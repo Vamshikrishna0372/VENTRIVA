@@ -24,6 +24,7 @@ export const AdminUserDetail = () => {
 
   const [userData, setUserData] = useState(null);
   const [founderStartup, setFounderStartup] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -38,6 +39,7 @@ export const AdminUserDetail = () => {
       if (res?.success && res?.user) {
         setUserData(res.user);
         setFounderStartup(res.founderStartup || null);
+        setTeamMembers(res.teamMembers || []);
       }
     } catch (err) {
       console.error('Error fetching user detail:', err);
@@ -166,8 +168,8 @@ export const AdminUserDetail = () => {
                 <span className="font-bold text-brand-300 capitalize">{userData.role}</span>
               </div>
               <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                <span className="text-[10px] font-mono text-slate-400 uppercase block">Registered Date</span>
-                <span className="font-bold text-slate-100">{new Date(userData.createdAt).toLocaleDateString()}</span>
+                <span className="text-[10px] font-mono text-slate-400 uppercase block">Years of Experience</span>
+                <span className="font-bold text-slate-100">{userData.yearsOfExperience ?? 'Not specified'}</span>
               </div>
               <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
                 <span className="text-[10px] font-mono text-slate-400 uppercase block">Location</span>
@@ -185,6 +187,10 @@ export const AdminUserDetail = () => {
                   </a>
                 </div>
               )}
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-mono text-slate-400 uppercase block">Registered Date</span>
+                <span className="font-bold text-slate-100">{new Date(userData.createdAt).toLocaleDateString()}</span>
+              </div>
               <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
                 <span className="text-[10px] font-mono text-slate-400 uppercase block">Account Verification</span>
                 <span className="font-bold text-emerald-400">{userData.isVerified ? 'Verified' : 'Unverified'}</span>
@@ -207,7 +213,7 @@ export const AdminUserDetail = () => {
             {/* Investor Preferences if Investor Role */}
             {userData.role === 'investor' && (
               <div className="pt-3 border-t border-slate-800 space-y-3">
-                <h4 className="text-xs font-mono uppercase text-slate-400">Investment Thesis & Check Size Criteria</h4>
+                <h4 className="text-xs font-mono uppercase text-slate-400">Investment Thesis & Mandate Criteria</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
                     <span className="text-[10px] font-mono text-slate-400 uppercase block">Target Check Size Range</span>
@@ -227,6 +233,40 @@ export const AdminUserDetail = () => {
                       )}
                     </div>
                   </div>
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase block">Target Stages</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {Array.isArray(userData.preferredStages) && userData.preferredStages.length > 0 ? (
+                        userData.preferredStages.map((stg, i) => (
+                          <Badge key={i} variant="emerald" size="xs">{stg}</Badge>
+                        ))
+                      ) : (
+                        <span className="text-slate-500 italic">No stages selected</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase block">Target Business Models</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {Array.isArray(userData.preferredBusinessModels) && userData.preferredBusinessModels.length > 0 ? (
+                        userData.preferredBusinessModels.map((bm, i) => (
+                          <Badge key={i} variant="indigo" size="xs">{bm}</Badge>
+                        ))
+                      ) : (
+                        <span className="text-slate-500 italic">No business models selected</span>
+                      )}
+                    </div>
+                  </div>
+                  {Array.isArray(userData.preferredGeographies) && userData.preferredGeographies.length > 0 && (
+                    <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 sm:col-span-2">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block">Target Geographies</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {userData.preferredGeographies.map((geo, i) => (
+                          <Badge key={i} variant="amber" size="xs">{geo}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -252,6 +292,18 @@ export const AdminUserDetail = () => {
                       Review Startup Profile
                     </Button>
                   </Link>
+
+                  {teamMembers.length > 0 && (
+                    <div className="pt-2 border-t border-slate-800 space-y-1.5">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block">Startup Key Team ({teamMembers.length})</span>
+                      {teamMembers.map((m) => (
+                        <div key={m._id} className="text-xs flex items-center justify-between text-slate-300">
+                          <span>{m.name} <span className="text-slate-500">({m.role})</span></span>
+                          {m.isFounder && <Badge variant="emerald" size="xs">Founder</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-xs text-slate-400 italic">No startup profile created yet by this founder.</p>
