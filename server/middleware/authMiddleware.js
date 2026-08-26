@@ -39,7 +39,7 @@ const protect = async (req, res, next) => {
       req.user = user;
     } else {
       // Fallback object if database is not active
-      req.user = { id: decoded.id, role: decoded.role };
+      req.user = { _id: decoded.id, id: decoded.id, role: decoded.role };
     }
 
     next();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Building2, Globe, MapPin, Briefcase, DollarSign, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { User, Mail, Building2, Globe, MapPin, Briefcase, DollarSign, Phone, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardBody } from '../../components/common/Card';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
@@ -16,12 +16,14 @@ export const InvestorSettings = () => {
     email: '',
     professionalTitle: '',
     organization: '',
+    phone: '',
     bio: '',
     location: '',
     linkedin: '',
     preferredSectors: [],
     preferredStages: [],
     preferredBusinessModels: [],
+    preferredGeographies: [],
     minimumInvestment: 0,
     maximumInvestment: 0,
     investmentCurrency: 'USD',
@@ -45,12 +47,14 @@ export const InvestorSettings = () => {
           email: res.user.email || '',
           professionalTitle: res.user.professionalTitle || '',
           organization: res.user.organization || '',
+          phone: res.user.phone || '',
           bio: res.user.bio || '',
           location: res.user.location || '',
           linkedin: res.user.linkedin || '',
           preferredSectors: res.user.preferredSectors || [],
           preferredStages: res.user.preferredStages || [],
           preferredBusinessModels: res.user.preferredBusinessModels || [],
+          preferredGeographies: res.user.preferredGeographies || [],
           minimumInvestment: res.user.minimumInvestment || 0,
           maximumInvestment: res.user.maximumInvestment || 0,
           investmentCurrency: res.user.investmentCurrency || 'USD',
@@ -162,6 +166,14 @@ export const InvestorSettings = () => {
                 value={formData.professionalTitle}
                 onChange={handleInputChange}
                 icon={Briefcase}
+              />
+              <Input
+                label="Phone Number"
+                name="phone"
+                placeholder="+1 (555) 234-5678"
+                value={formData.phone}
+                onChange={handleInputChange}
+                icon={Phone}
               />
               <Input
                 label="Location (City, Country)"
@@ -277,6 +289,40 @@ export const InvestorSettings = () => {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Target Geographies */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Target Geographies <span className="text-slate-500 normal-case font-normal">(press Enter to add)</span>
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {(formData.preferredGeographies || []).map((geo, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs rounded-lg font-semibold">
+                    {geo}
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, preferredGeographies: prev.preferredGeographies.filter((_, idx) => idx !== i) }))}
+                      className="ml-1 text-amber-400 hover:text-amber-200 font-bold leading-none"
+                    >×</button>
+                  </span>
+                ))}
+              </div>
+              <input
+                type="text"
+                placeholder="Type a region and press Enter (e.g. USA, India, Southeast Asia)"
+                className="w-full bg-slate-900/90 text-slate-100 text-sm rounded-xl border border-slate-800 hover:border-slate-700 p-3 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const val = e.target.value.trim();
+                    if (val && !(formData.preferredGeographies || []).includes(val)) {
+                      setFormData(prev => ({ ...prev, preferredGeographies: [...(prev.preferredGeographies || []), val] }));
+                      e.target.value = '';
+                    }
+                  }
+                }}
+              />
             </div>
 
             {/* Check Size Range */}

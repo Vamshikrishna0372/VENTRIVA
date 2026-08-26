@@ -308,7 +308,7 @@ const googleAuth = async (req, res, next) => {
 const googleCallback = async (req, res, next) => {
   try {
     const { code } = req.query;
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const clientUrl = process.env.CLIENT_URL || 'https://ventriva.vercel.app';
 
     if (!code) {
       return res.redirect(`${clientUrl}/login?error=google_auth_failed`);

@@ -191,9 +191,10 @@ const getAdminUserById = async (req, res, next) => {
     if (user.role === 'founder') {
       founderStartup = await Startup.findOne({ founder: user._id, isDeleted: false }).lean();
       if (founderStartup) {
-        const comp = calculateProfileCompletion(founderStartup);
-        founderStartup.profileCompletion = comp.totalCompletionPercentage;
         teamMembers = await TeamMember.find({ startup: founderStartup._id }).sort({ displayOrder: 1, createdAt: 1 }).lean();
+        const comp = calculateProfileCompletion(founderStartup, user, teamMembers.length);
+        founderStartup.profileCompletion = comp.percentage;
+        founderStartup.missingProfileFields = comp.missingFields;
       }
     }
 
@@ -408,7 +409,7 @@ const getAdminStartups = async (req, res, next) => {
 
     const startupsWithCompletion = startups.map((s) => ({
       ...s,
-      profileCompletion: calculateProfileCompletion(s).totalCompletionPercentage,
+      profileCompletion: calculateProfileCompletion(s, s.founder, 0).percentage,
     }));
 
     res.status(200).json({
@@ -448,7 +449,7 @@ const getAdminStartupById = async (req, res, next) => {
     }
 
     const teamMembers = await TeamMember.find({ startup: startup._id }).sort({ displayOrder: 1, createdAt: 1 }).lean();
-    const comp = calculateProfileCompletion(startup);
+    const comp = calculateProfileCompletion(startup, startup.founder, teamMembers.length);
 
     res.status(200).json({
       success: true,

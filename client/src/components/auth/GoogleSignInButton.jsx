@@ -26,10 +26,8 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
         } else if (res.user) {
           if (onSuccess) {
             onSuccess(res.user);
-          } else {
-            const target = res.user.role === 'admin' ? '/admin/dashboard' : res.user.role === 'founder' ? '/founder/dashboard' : '/investor/dashboard';
-            navigate(target, { replace: true });
           }
+          // Parent container (LoginPage / RegisterPage) listens to AuthContext user/isAuthenticated and handles single clean navigation
         }
       } else {
         setErrorMsg(res.message || 'Google Sign-In failed.');
@@ -51,10 +49,8 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
         setOnboardingIdentity(null);
         if (onSuccess) {
           onSuccess(res.user);
-        } else {
-          const target = res.user.role === 'admin' ? '/admin/dashboard' : res.user.role === 'founder' ? '/founder/dashboard' : '/investor/dashboard';
-          navigate(target, { replace: true });
         }
+        // Parent container listens to AuthContext user/isAuthenticated and handles single clean navigation
       } else {
         setErrorMsg(res.message || 'Role onboarding failed.');
       }

@@ -28,6 +28,7 @@ const updateInvestorProfile = async (req, res, next) => {
       name,
       professionalTitle,
       organization,
+      phone,
       bio,
       location,
       linkedin,
@@ -48,6 +49,7 @@ const updateInvestorProfile = async (req, res, next) => {
     if (name) user.name = name.trim();
     if (professionalTitle !== undefined) user.professionalTitle = professionalTitle;
     if (organization !== undefined) user.organization = organization;
+    if (phone !== undefined) user.phone = phone;
     if (bio !== undefined) user.bio = bio;
     if (location !== undefined) user.location = location;
     if (linkedin !== undefined) user.linkedin = linkedin;
