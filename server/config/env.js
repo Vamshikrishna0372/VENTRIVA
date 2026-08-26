@@ -9,7 +9,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: parseInt(process.env.PORT || '5000', 10),
+  PORT: parseInt(process.env.PORT || '5001', 10),
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/ventriva',
   JWT_SECRET: process.env.JWT_SECRET || 'ventriva_super_secret_jwt_key_2026',
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',

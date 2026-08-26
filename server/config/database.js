@@ -24,20 +24,6 @@ const connectDB = async () => {
 
     console.log(`[Database] MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
 
-    mongoose.connection.on('disconnected', () => {
-      console.warn('[Database Warning] MongoDB connection lost. Reconnecting...');
-      isConnected = false;
-    });
-
-    mongoose.connection.on('reconnected', () => {
-      console.log('[Database] MongoDB connection re-established.');
-      isConnected = true;
-    });
-
-    mongoose.connection.on('error', (err) => {
-      console.error('[Database Error]', err.message);
-    });
-
     return conn;
   } catch (error) {
     console.error(`[Database Error] Failed to connect to MongoDB: ${error.message}`);
@@ -50,6 +36,21 @@ const connectDB = async () => {
     throw error;
   }
 };
+
+// Global connection event listeners registered once
+mongoose.connection.on('disconnected', () => {
+  console.warn('[Database Warning] MongoDB connection lost. Reconnecting...');
+  isConnected = false;
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('[Database] MongoDB connection re-established.');
+  isConnected = true;
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('[Database Error]', err.message);
+});
 
 const disconnectDB = async () => {
   if (isConnected) {
