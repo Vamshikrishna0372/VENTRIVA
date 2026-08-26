@@ -23,7 +23,7 @@ export const AdminVerification = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await getAdminStartups({ limit: 100 });
+      const res = await getAdminStartups({ isVerified: 'false', limit: 100 });
       if (res?.success && Array.isArray(res.startups)) {
         setStartups(res.startups);
       } else {

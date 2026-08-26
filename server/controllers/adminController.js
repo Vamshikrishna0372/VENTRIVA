@@ -71,11 +71,7 @@ const getAdminDashboardMetrics = async (req, res, next) => {
       Startup.countDocuments({
         isDeleted: false,
         isVerified: false,
-        $or: [
-          { verificationStatus: 'Pending Review' },
-          { verificationStatus: 'Pending' },
-          { isPublished: true, verificationStatus: { $ne: 'Rejected' } },
-        ],
+        verificationStatus: { $ne: 'Rejected' },
       }),
       Evaluation.countDocuments(),
       PipelineEntry.countDocuments({ status: 'Active' }),
@@ -390,7 +386,10 @@ const getAdminStartups = async (req, res, next) => {
     if (isPublished === 'true') query.isPublished = true;
     if (isPublished === 'false') query.isPublished = false;
     if (isVerified === 'true') query.isVerified = true;
-    if (isVerified === 'false') query.isVerified = false;
+    if (isVerified === 'false') {
+      query.isVerified = false;
+      query.verificationStatus = { $ne: 'Rejected' };
+    }
 
     if (search && search.trim().length > 0) {
       const regex = new RegExp(search.trim(), 'i');
