@@ -10,13 +10,40 @@ import GoogleSignInButton from '../../components/auth/GoogleSignInButton';
 export const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, user, restoreSession } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Handle OAuth query parameters (token, error, target)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    const target = params.get('target');
+    const error = params.get('error');
+
+    if (error) {
+      if (error === 'google_auth_failed') {
+        setErrorMessage('Google authentication was cancelled or could not be completed.');
+      } else if (error === 'google_email_missing') {
+        setErrorMessage('Your Google account does not have a verified email address.');
+      } else {
+        setErrorMessage('An error occurred during Google authentication. Please try again.');
+      }
+    } else if (token) {
+      localStorage.setItem('ventriva_token', token);
+      if (typeof restoreSession === 'function') {
+        restoreSession().then(() => {
+          if (target) {
+            navigate(decodeURIComponent(target), { replace: true });
+          }
+        });
+      }
+    }
+  }, [location.search, restoreSession, navigate]);
 
   const getRoleDashboard = (role) => {
     if (role === 'admin') return '/admin/dashboard';

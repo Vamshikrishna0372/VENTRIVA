@@ -3,10 +3,11 @@ const sendTokenResponse = require('../utils/generateToken');
 const mongoose = require('mongoose');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
+const env = require('../config/env');
 
 const { connectDB } = require('../config/database');
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 // Helper to check DB connection readiness
 const checkDatabaseConnected = async (res) => {
@@ -147,6 +148,13 @@ const loginUser = async (req, res, next) => {
       });
     }
 
+    if (!hasPassword && user.googleId) {
+      return res.status(401).json({
+        success: false,
+        message: 'This account was registered using Google Sign-In. Please sign in with Google.',
+      });
+    }
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -213,11 +221,11 @@ const googleAuth = async (req, res, next) => {
     try {
       const ticket = await googleClient.verifyIdToken({
         idToken: credential,
-        audience: process.env.GOOGLE_CLIENT_ID,
+        audience: env.GOOGLE_CLIENT_ID,
       });
       payload = ticket.getPayload();
     } catch (verifyErr) {
-      console.error('Google ID Token verification failed:', verifyErr);
+      console.error('Google ID Token verification failed:', verifyErr.message || verifyErr);
       return res.status(401).json({
         success: false,
         message: 'Invalid or expired Google authentication credential',
@@ -281,11 +289,9 @@ const googleAuth = async (req, res, next) => {
     }
 
     // Create new user with verified role (strictly forbid admin)
-    const randomPassword = crypto.randomBytes(16).toString('hex');
     user = await User.create({
       name: payload.name || normalizedEmail.split('@')[0],
       email: normalizedEmail,
-      password: randomPassword,
       role: requestedRole,
       googleId,
       avatar: payload.picture || '',
@@ -308,7 +314,7 @@ const googleAuth = async (req, res, next) => {
 const googleCallback = async (req, res, next) => {
   try {
     const { code } = req.query;
-    const clientUrl = process.env.CLIENT_URL || 'https://ventriva.vercel.app';
+    const clientUrl = env.CLIENT_URL || process.env.CLIENT_URL || 'https://ventriva.vercel.app';
 
     if (!code) {
       return res.redirect(`${clientUrl}/login?error=google_auth_failed`);
@@ -316,15 +322,15 @@ const googleCallback = async (req, res, next) => {
 
     const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
     const oauth2Client = new OAuth2Client(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      env.GOOGLE_CLIENT_ID,
+      env.GOOGLE_CLIENT_SECRET,
       redirectUri
     );
 
     const { tokens } = await oauth2Client.getToken(code);
     const ticket = await oauth2Client.verifyIdToken({
       idToken: tokens.id_token,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: env.GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
 

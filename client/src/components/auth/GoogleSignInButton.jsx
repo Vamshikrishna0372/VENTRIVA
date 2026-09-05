@@ -1,12 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import RoleOnboardingModal from './RoleOnboardingModal';
 
 export const GoogleSignInButton = ({ role = null, onSuccess }) => {
   const { loginWithGoogle } = useAuth();
-  const navigate = useNavigate();
   const buttonRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
