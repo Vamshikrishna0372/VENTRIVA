@@ -5,6 +5,7 @@ const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
+const { getCanonicalClientUrl, isProductionEnvironment, PRODUCTION_CLIENT_URL } = require('../config/clientUrl');
 
 const { connectDB } = require('../config/database');
 
@@ -312,21 +313,22 @@ const googleAuth = async (req, res, next) => {
  */
 const getGoogleRedirectUri = (req) => {
   const host = req ? req.get('host') || '' : '';
-  if (host.includes('onrender.com') || env.NODE_ENV === 'production') {
+  if (host.includes('onrender.com') || isProductionEnvironment(req)) {
     return 'https://ventriva.onrender.com/api/auth/google/callback';
   }
   return `${req.protocol}://${host}/api/auth/google/callback`;
 };
 
 /**
- * Helper: Resolve target frontend client URL
+ * Helper: Resolve target frontend client URL with strict production firewall
  */
 const getClientUrl = (req) => {
-  const host = req ? req.get('host') || '' : '';
-  if (host.includes('localhost') || host.includes('127.0.0.1')) {
-    return env.CLIENT_URL || 'http://localhost:5173';
+  let url = getCanonicalClientUrl(req);
+  if (isProductionEnvironment(req) && (url.includes('localhost') || url.includes('127.0.0.1'))) {
+    console.error('[CRITICAL-CONFIG-ALERT] Localhost URL detected in production environment! Forcing canonical URL:', PRODUCTION_CLIENT_URL);
+    url = PRODUCTION_CLIENT_URL;
   }
-  return env.CLIENT_URL || 'https://ventriva.vercel.app';
+  return url;
 };
 
 /**
@@ -380,6 +382,7 @@ const googleStart = async (req, res) => {
  */
 const googleCallback = async (req, res, next) => {
   const clientUrl = getClientUrl(req);
+  console.log('[GOOGLE-AUTH-REDIRECT] Resolved frontend destination URL:', clientUrl);
   try {
     const { code, state, error: oauthError } = req.query;
 
@@ -387,6 +390,7 @@ const googleCallback = async (req, res, next) => {
       hasCode: Boolean(code),
       hasState: Boolean(state),
       oauthError: oauthError || null,
+      clientUrl,
     });
 
     if (oauthError || !code) {
