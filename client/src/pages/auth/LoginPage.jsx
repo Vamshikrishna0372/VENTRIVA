@@ -6,35 +6,43 @@ import { Input } from '../../components/common/Input';
 import { Card } from '../../components/common/Card';
 import { useAuth } from '../../context/AuthContext';
 import GoogleSignInButton from '../../components/auth/GoogleSignInButton';
+import RoleOnboardingModal from '../../components/auth/RoleOnboardingModal';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, user, restoreSession } = useAuth();
+  const { login, isAuthenticated, user, restoreSession, completeGoogleOnboarding } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [onboardingData, setOnboardingData] = useState(null);
+  const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
 
-  // Handle OAuth query parameters (token, error, target)
+  // Handle OAuth query parameters (token, onboardingToken, error, target)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get('token');
     const target = params.get('target');
     const error = params.get('error');
+    const onboardingToken = params.get('onboardingToken');
 
     if (error) {
-      console.warn('[GSI-ERROR] OAuth parameter error received:', error);
+      console.warn('[GOOGLE-AUTH-ERROR] OAuth parameter error received:', error);
       if (error === 'google_auth_failed') {
         setErrorMessage('Google authentication was cancelled or could not be completed.');
       } else if (error === 'google_email_missing') {
         setErrorMessage('Your Google account does not have a verified email address.');
+      } else if (error === 'account_deactivated') {
+        setErrorMessage('Your account is deactivated. Please contact support.');
       } else {
         setErrorMessage('An error occurred during Google authentication. Please try again.');
       }
+      window.history.replaceState(null, '', window.location.pathname);
     } else if (token) {
+      console.log('[GOOGLE-AUTH-SUCCESS] OAuth redirect token received in query parameters');
       localStorage.setItem('ventriva_token', token);
       if (target) {
         sessionStorage.setItem('ventriva_auth_target', decodeURIComponent(target));
@@ -43,6 +51,15 @@ export const LoginPage = () => {
       if (typeof restoreSession === 'function') {
         restoreSession();
       }
+    } else if (onboardingToken) {
+      console.log('[GOOGLE-AUTH-SUCCESS] New Google user onboarding token received');
+      setOnboardingData({
+        onboardingToken,
+        email: params.get('email') || '',
+        name: params.get('name') || '',
+        picture: params.get('picture') || '',
+      });
+      window.history.replaceState(null, '', window.location.pathname);
     }
   }, [location.search, restoreSession]);
 
@@ -83,6 +100,27 @@ export const LoginPage = () => {
       }
     }
   }, [isAuthenticated, user, navigate]);
+
+  // Handle role selection from Google OAuth onboarding modal for new users
+  const handleRoleSelected = async (selectedRole) => {
+    if (!onboardingData?.onboardingToken) return;
+    setIsOnboardingLoading(true);
+    setErrorMessage('');
+    try {
+      console.log('[GOOGLE-AUTH-START] Submitting role onboarding choice for new user:', selectedRole);
+      const res = await completeGoogleOnboarding(onboardingData.onboardingToken, selectedRole);
+      if (res.success && res.user) {
+        console.log('[GOOGLE-AUTH-SUCCESS] Onboarding complete. User authenticated:', res.user.email);
+        setOnboardingData(null);
+      } else {
+        setErrorMessage(res.message || 'Role onboarding failed. Please try again.');
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'An error occurred during onboarding.');
+    } finally {
+      setIsOnboardingLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -210,6 +248,15 @@ export const LoginPage = () => {
           </div>
         </Card>
       </div>
+
+      {/* Role Onboarding Modal for New Google Users */}
+      {onboardingData && (
+        <RoleOnboardingModal
+          googleIdentity={onboardingData}
+          onSelectRole={handleRoleSelected}
+          isLoading={isOnboardingLoading}
+        />
+      )}
     </div>
   );
 };

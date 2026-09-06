@@ -141,6 +141,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const completeGoogleOnboarding = async (onboardingToken, role) => {
+    setAuthError(null);
+    console.log('[GOOGLE-AUTH-START] Submitting role onboarding:', { role });
+    try {
+      const res = await api.post('/auth/google/complete-onboarding', { onboardingToken, role });
+      if (res.data?.success) {
+        const { user: userData, token } = res.data;
+        if (token) {
+          localStorage.setItem('ventriva_token', token);
+          console.log('[GOOGLE-AUTH-SESSION-ESTABLISHED] JWT session token stored');
+        }
+        console.log('[GOOGLE-AUTH-ROLE-SYNC] Synchronized role:', userData?.role);
+        setUser(userData);
+        setIsAuthenticated(true);
+        console.log('[GOOGLE-AUTH-SUCCESS] User authenticated successfully');
+        return { success: true, user: userData };
+      } else {
+        throw new Error(res.data?.message || 'Role onboarding failed');
+      }
+    } catch (err) {
+      const message = getErrorMessage(err, 'Role onboarding failed');
+      console.error('[GOOGLE-AUTH-ERROR] Role onboarding failed:', message);
+      setAuthError(message);
+      return { success: false, message };
+    }
+  };
+
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -168,6 +195,7 @@ export const AuthProvider = ({ children }) => {
         login,
         loginWithEmail: login,
         loginWithGoogle,
+        completeGoogleOnboarding,
         register,
         logout,
         fetchCurrentUser,

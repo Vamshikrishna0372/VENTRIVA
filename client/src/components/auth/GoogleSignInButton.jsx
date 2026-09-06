@@ -1,145 +1,48 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import RoleOnboardingModal from './RoleOnboardingModal';
 
-export const GoogleSignInButton = ({ role = null, onSuccess }) => {
-  const { loginWithGoogle } = useAuth();
-  const buttonRef = useRef(null);
+export const GoogleSignInButton = ({ role = null, label = null }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [onboardingIdentity, setOnboardingIdentity] = useState(null);
 
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '558182928975-0c2rval5u11njnlsot2lucnsmob10774.apps.googleusercontent.com';
-
-  const handleCredentialResponse = async (response) => {
-    console.log('[GSI-CALLBACK] Google Identity Services callback invoked', {
-      hasResponse: Boolean(response),
-      hasCredential: Boolean(response?.credential),
-    });
-
-    if (!response || !response.credential) {
-      console.error('[GSI-ERROR] Google callback returned without credential');
-      setErrorMsg('Google did not return valid credentials. Please try again.');
-      return;
-    }
-
-    console.log('[GSI-CREDENTIAL-RECEIVED] Credential payload received, commencing authentication handshake');
-    setIsLoading(true);
-    setErrorMsg('');
+  const handleGoogleSignIn = () => {
     try {
-      const res = await loginWithGoogle(response.credential, role);
-      if (res.success) {
-        if (res.requiresOnboarding && res.googleIdentity) {
-          console.log('[GSI-AUTH-SUCCESS] User requires workspace onboarding role selection');
-          setOnboardingIdentity(res.googleIdentity);
-        } else if (res.user) {
-          console.log('[GSI-AUTH-SUCCESS] Google authentication successful for user:', res.user.email);
-          if (onSuccess) {
-            onSuccess(res.user);
-          }
-          // Parent container (LoginPage / RegisterPage) listens to AuthContext user/isAuthenticated and handles single clean navigation
-        }
-      } else {
-        console.error('[GSI-ERROR] Google login failed:', res.message);
-        setErrorMsg(res.message || 'Google Sign-In failed.');
+      console.log('[GOOGLE-AUTH-START] User initiated Google redirect authentication flow', {
+        role: role || 'unspecified (login flow)',
+        timestamp: new Date().toISOString(),
+      });
+
+      setIsLoading(true);
+      setErrorMsg('');
+
+      let rawApiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').trim().replace(/\/+$/, '');
+      if (!rawApiUrl.endsWith('/api')) {
+        rawApiUrl = `${rawApiUrl}/api`;
       }
+
+      // Fire a non-blocking background ping to wake up backend immediately (e.g. Render spin-up)
+      fetch(`${rawApiUrl}/health`, { method: 'GET', mode: 'cors' }).catch(() => {});
+
+      const params = new URLSearchParams();
+      if (role) {
+        params.set('role', role);
+      }
+
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const startUrl = `${rawApiUrl}/auth/google/start${queryString}`;
+
+      console.log('[GOOGLE-AUTH-REDIRECT] Redirecting browser to Google OAuth initiation endpoint:', startUrl);
+
+      // Deterministic full-page redirect to Google OAuth flow (100% immune to mobile popup/opener issues)
+      window.location.href = startUrl;
     } catch (err) {
-      console.error('[GSI-ERROR] Exception during Google Sign-In:', err.message || err);
-      setErrorMsg(err.message || 'An error occurred during Google Sign-In.');
-    } finally {
+      console.error('[GOOGLE-AUTH-ERROR] Failed to initiate Google redirect:', err.message || err);
+      setErrorMsg('Failed to connect to Google authentication. Please try again.');
       setIsLoading(false);
     }
   };
 
-  const handleRoleSelected = async (selectedRole) => {
-    if (!onboardingIdentity?.credential) return;
-    setIsLoading(true);
-    setErrorMsg('');
-    try {
-      console.log('[GSI-AUTH-REQUEST] Submitting role onboarding selection:', selectedRole);
-      const res = await loginWithGoogle(onboardingIdentity.credential, selectedRole);
-      if (res.success && res.user) {
-        console.log('[GSI-AUTH-SUCCESS] Role onboarding completed successfully');
-        setOnboardingIdentity(null);
-        if (onSuccess) {
-          onSuccess(res.user);
-        }
-      } else {
-        console.error('[GSI-ERROR] Role onboarding failed:', res.message);
-        setErrorMsg(res.message || 'Role onboarding failed.');
-      }
-    } catch (err) {
-      console.error('[GSI-ERROR] Exception during role onboarding:', err.message || err);
-      setErrorMsg(err.message || 'An error occurred during role onboarding.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const callbackRef = useRef(handleCredentialResponse);
-  useEffect(() => {
-    callbackRef.current = handleCredentialResponse;
-  });
-
-  const buttonRenderedRef = useRef(false);
-
-  // Official Google Identity Services (GSI) Button Initialization
-  useEffect(() => {
-    const scriptId = 'google-jssdk';
-    const initGsi = () => {
-      if (!window.google?.accounts?.id || !clientId) return;
-
-      try {
-        if (window.__gsi_initialized_id !== clientId) {
-          console.log('[GSI-INIT] Initializing Google Identity Services with client ID:', clientId.slice(0, 20) + '...');
-          window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: (res) => {
-              if (typeof window.__gsi_active_callback === 'function') {
-                window.__gsi_active_callback(res);
-              }
-            },
-            auto_select: false,
-            ux_mode: 'popup',
-          });
-          window.__gsi_initialized_id = clientId;
-        }
-
-        window.__gsi_active_callback = (res) => callbackRef.current(res);
-
-        if (buttonRef.current && !buttonRenderedRef.current) {
-          buttonRef.current.innerHTML = '';
-          const parentWidth = buttonRef.current.parentElement?.clientWidth || window.innerWidth;
-          const responsiveWidth = Math.min(Math.max(parentWidth - 32, 220), 380);
-
-          console.log('[GSI-BUTTON] Rendering Google Identity Services button with width:', responsiveWidth);
-          window.google.accounts.id.renderButton(buttonRef.current, {
-            theme: 'outline',
-            size: 'large',
-            width: String(responsiveWidth),
-            text: 'continue_with',
-            shape: 'rectangular',
-          });
-          buttonRenderedRef.current = true;
-        }
-      } catch (gErr) {
-        console.warn('[GSI-ERROR] Google Identity Services (GSI) initialization warning:', gErr.message || gErr);
-      }
-    };
-
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => initGsi();
-      document.body.appendChild(script);
-    } else if (window.google?.accounts?.id) {
-      initGsi();
-    }
-  }, [clientId]);
+  const buttonText = label || (role ? `Continue with Google as ${role.charAt(0).toUpperCase() + role.slice(1)}` : 'Continue with Google');
 
   return (
     <div className="w-full space-y-2">
@@ -150,29 +53,30 @@ export const GoogleSignInButton = ({ role = null, onSuccess }) => {
         </div>
       )}
 
-      {isLoading && (
-        <div className="w-full py-2.5 px-4 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-200 flex items-center justify-center gap-2 animate-fadeIn">
-          <Loader2 className="w-4 h-4 text-brand-400 animate-spin" />
-          <span>Authenticating with Google...</span>
-        </div>
-      )}
-
-      {/* Button container stays permanently mounted to preserve GSI iframe lifecycle */}
-      <div
-        ref={buttonRef}
-        className={`w-full min-h-[40px] flex justify-center transition-all ${
-          isLoading ? 'hidden' : 'block'
-        }`}
-      />
-
-      {/* Role Onboarding Modal for New Google Users */}
-      {onboardingIdentity && (
-        <RoleOnboardingModal
-          googleIdentity={onboardingIdentity}
-          onSelectRole={handleRoleSelected}
-          isLoading={isLoading}
-        />
-      )}
+      <button
+        type="button"
+        id="google-signin-button"
+        onClick={handleGoogleSignIn}
+        disabled={isLoading}
+        className="w-full py-2.5 px-4 bg-slate-900/90 hover:bg-slate-800 active:bg-slate-850 border border-slate-700/80 hover:border-slate-600 rounded-xl text-xs font-semibold text-slate-200 transition-all duration-150 flex items-center justify-center gap-2.5 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-60 disabled:cursor-not-allowed group cursor-pointer"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 text-brand-400 animate-spin shrink-0" />
+            <span>Connecting to Google...</span>
+          </>
+        ) : (
+          <>
+            <svg className="w-4 h-4 shrink-0 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+            </svg>
+            <span className="text-slate-200 group-hover:text-white transition-colors">{buttonText}</span>
+          </>
+        )}
+      </button>
     </div>
   );
 };
