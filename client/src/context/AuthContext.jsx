@@ -25,18 +25,22 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
+    console.log('[GSI-SESSION-RESTORE] Validating active token session via /auth/me');
     try {
       const res = await api.get('/auth/me');
       if (res.data?.success && res.data?.user) {
+        console.log('[GSI-ROLE-SYNC] Session restored, synchronized role:', res.data.user.role);
         setUser(res.data.user);
         setIsAuthenticated(true);
       } else {
+        console.warn('[GSI-ERROR] Session restoration invalid, clearing token storage');
         localStorage.removeItem('ventriva_token');
         localStorage.removeItem('token');
         setUser(null);
         setIsAuthenticated(false);
       }
     } catch (err) {
+      console.warn('[GSI-ERROR] Session restoration failed:', err.message || err);
       localStorage.removeItem('ventriva_token');
       localStorage.removeItem('token');
       setUser(null);
@@ -79,10 +83,16 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithGoogle = async (credential, role = null) => {
     setAuthError(null);
+    console.log('[GSI-AUTH-REQUEST] Dispatching POST /api/auth/google', {
+      hasCredential: Boolean(credential),
+      targetRole: role || 'existing/onboarding',
+    });
+
     try {
       const res = await api.post('/auth/google', { credential, role });
       if (res.data?.success) {
         if (res.data.requiresOnboarding && res.data.googleIdentity) {
+          console.log('[GSI-AUTH-SUCCESS] User onboarding required for new account');
           setPendingGoogleUser(res.data.googleIdentity);
           return { success: true, requiresOnboarding: true, googleIdentity: res.data.googleIdentity };
         }
@@ -90,16 +100,20 @@ export const AuthProvider = ({ children }) => {
         const { user: userData, token } = res.data;
         if (token) {
           localStorage.setItem('ventriva_token', token);
+          console.log('[GSI-TOKEN-STORED] JWT authentication token persisted to storage');
         }
         setPendingGoogleUser(null);
+        console.log('[GSI-ROLE-SYNC] Setting authenticated user with verified role:', userData?.role);
         setUser(userData);
         setIsAuthenticated(true);
+        console.log('[GSI-AUTH-SUCCESS] AuthContext successfully updated to authenticated');
         return { success: true, user: userData, isNewUser: res.data.isNewUser || false };
       } else {
         throw new Error(res.data?.message || 'Google authentication failed');
       }
     } catch (err) {
       const message = getErrorMessage(err, 'Google authentication failed');
+      console.error('[GSI-ERROR] Google auth request failed:', message);
       setAuthError(message);
       return { success: false, message };
     }

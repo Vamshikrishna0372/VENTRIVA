@@ -47,6 +47,7 @@ export const InvestorDashboard = () => {
   const [isError, setIsError] = useState(false);
 
   useEffect(() => {
+    console.log('[GSI-DASHBOARD-MOUNT] InvestorDashboard mounted successfully for user:', user?.email);
     fetchDashboardData();
   }, []);
 

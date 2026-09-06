@@ -26,6 +26,7 @@ export const LoginPage = () => {
     const error = params.get('error');
 
     if (error) {
+      console.warn('[GSI-ERROR] OAuth parameter error received:', error);
       if (error === 'google_auth_failed') {
         setErrorMessage('Google authentication was cancelled or could not be completed.');
       } else if (error === 'google_email_missing') {
@@ -35,15 +36,15 @@ export const LoginPage = () => {
       }
     } else if (token) {
       localStorage.setItem('ventriva_token', token);
+      if (target) {
+        sessionStorage.setItem('ventriva_auth_target', decodeURIComponent(target));
+      }
+      window.history.replaceState(null, '', window.location.pathname);
       if (typeof restoreSession === 'function') {
-        restoreSession().then(() => {
-          if (target) {
-            navigate(decodeURIComponent(target), { replace: true });
-          }
-        });
+        restoreSession();
       }
     }
-  }, [location.search, restoreSession, navigate]);
+  }, [location.search, restoreSession]);
 
   const getRoleDashboard = (role) => {
     if (role === 'admin') return '/admin/dashboard';
@@ -53,6 +54,13 @@ export const LoginPage = () => {
   };
 
   const resolveTargetRoute = (userRole, fromPath) => {
+    const savedTarget = sessionStorage.getItem('ventriva_auth_target');
+    if (savedTarget) {
+      sessionStorage.removeItem('ventriva_auth_target');
+      if (savedTarget.startsWith(`/${userRole}`)) {
+        return savedTarget;
+      }
+    }
     const dashboard = getRoleDashboard(userRole);
     if (!dashboard) return null;
     if (fromPath && typeof fromPath === 'string' && fromPath.startsWith(`/${userRole}`)) {
@@ -61,14 +69,16 @@ export const LoginPage = () => {
     return dashboard;
   };
 
-  // Redirect authenticated user strictly according to trusted database role
+  // Single Deterministic Navigation Owner: Redirect authenticated user strictly according to trusted database role
   const fromPath = location.state?.from?.pathname;
   useEffect(() => {
     if (isAuthenticated && user) {
       const target = resolveTargetRoute(user.role, fromPath);
       if (target) {
+        console.log('[GSI-NAVIGATION] Deterministic single navigation to authenticated route:', target);
         navigate(target, { replace: true });
       } else {
+        console.error('[GSI-ERROR] Account role unauthorized or missing for user:', user);
         setErrorMessage('Account role is missing or unauthorized. Please contact support.');
       }
     }

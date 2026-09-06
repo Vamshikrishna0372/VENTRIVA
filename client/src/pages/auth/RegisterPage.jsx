@@ -25,6 +25,7 @@ export const RegisterPage = () => {
   React.useEffect(() => {
     if (isAuthenticated && user) {
       const target = user.role === 'admin' ? '/admin/dashboard' : user.role === 'founder' ? '/founder/dashboard' : '/investor/dashboard';
+      console.log('[GSI-NAVIGATION] RegisterPage redirecting authenticated user to:', target);
       navigate(target, { replace: true });
     }
   }, [isAuthenticated, user, navigate]);

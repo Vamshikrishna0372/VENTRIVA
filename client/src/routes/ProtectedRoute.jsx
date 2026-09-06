@@ -16,7 +16,15 @@ export const ProtectedRoute = () => {
     );
   }
 
+  console.log('[GSI-ROUTE-GUARD] ProtectedRoute evaluating:', {
+    isAuthenticated,
+    hasUser: Boolean(user),
+    role: user?.role,
+    path: location.pathname,
+  });
+
   if (!isAuthenticated || !user) {
+    console.warn('[GSI-ROUTE-GUARD] Unauthenticated access blocked at', location.pathname, 'redirecting to /login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

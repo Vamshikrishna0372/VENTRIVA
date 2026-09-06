@@ -22,6 +22,7 @@ export const FounderDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[GSI-DASHBOARD-MOUNT] FounderDashboard mounted successfully for user:', user?.email);
     fetchDashboardData();
   }, []);
 
